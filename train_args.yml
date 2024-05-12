@@ -1,0 +1,67 @@
+# Fine-tuning Parameters Configuration
+dataset:
+  file_directory: "../data/downsampled2_9M_snrna.h5ad"
+  name: "snRNA600k"  # dataset name in fine-tuning
+
+model_parameters:
+  seed: 0
+  load_model: "scgpt_human"  # load trained model (*.pt)
+  vocab_path: "../scgpt_human/vocab.json"
+  do_train: true  # defines train / eval task
+  epochs: 1
+  use_flash_attn: false  # recommended if flash-attn is installed
+  fast_transformer_backend: "flash"  # flash-attn backend, ["flash", "linear"]
+  use_batch_labels: false  # use batch labels from annotated data
+  pre_norm: false  # pre-normalization
+  DSBN: false  # domain-specific batch normalization
+  amp: true  # automatic mixed precision
+  freeze_predecoder: false  # freeze pre-decoder in transformer model
+  train_test_split_ratio: 0.1  # 10% data as test data
+  batch_size: 64
+  lr: 1e-4  # learning rate
+  dropout: 0.2
+  schedule_ratio: 0.9  # learning rate linear decay ratio
+  schedule_interval: 1  # scheduler updates every N epoch
+  log_interval: 100  # logging every 100 batches
+  save_eval_interval: 1  # epoch to save the best model
+  nlayers: 12  # nn.TransformerEncoderLayer, overwrite if <fine-tune>
+  nheads: 4  # heads in nn.MultiheadAttention, overwrite if <fine-tune>
+  embsize: 512  # embedding dimension, overwrite if <fine-tune>
+  d_hid: 512  # dimension of the feedforward network in TransformerEncoder, overwrite if <fine-tune>
+  use_weighted_loss: false  # BOOL, enable weighted cross-entropy
+
+wand_configs:
+  mode: "offline"  # wandb mode for cloud syncing, ["online", "offline"]
+  project: "scgpt_cellType"  # project name
+  reinit: true
+  name: 'cell_type_111'  # task name, [Any String | Empty]
+
+task_configs:
+  pad_token: "<pad>"
+  cls_token: "<cls>"
+  eoc_token: "<eoc>"
+  mask_value: -1
+  pad_value: -2
+
+  CLS: true  # cell annotation classifier
+  MVC: false  # masked value prediction
+  mask_ratio: 0  # no masking
+  MLM: false  # masked language modeling
+  ADV: false  # adversarial training for batch correction
+  CCE: false  # contrastive cell embedding objective
+  ECS: false  # elastic cell similarity objective
+  ecs_threshold: 0.0  # # Elastic cell similarity objective, 0.0 to 1.0, 0.0 to disable
+  DAB: false  # domain adaptation by reverse backpropagation, set to 2 for separate optimizer
+  dab_weight: 0.0
+
+  n_hvg: 5000
+  max_seq_len: 5001  # max input sequence (gene expr) length into model. 1-indexed.
+  n_input_bins: 51  # number of bins in dataset
+  input_style: "binned"  # options: # "normed_raw" / "log1p" / "binned"
+  input_emb_style: "continuous"  # options: "category" / "continuous" / "scaling"
+  cell_emb_style: "cls"  # options: "avg-pool" / "w-pool" / "cls"
+  include_zero_gene: false
+  sort_per_seq_batch: false
+  explicit_zero_prob: false
+  do_sample_in_train: false
+
