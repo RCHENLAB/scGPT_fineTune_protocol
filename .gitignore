@@ -1,6 +1,8 @@
 /save
 /wandb
 /.idea
+/pretrained_models/*
+/dataset/*
 .DS_Store
 allType_cls2.py
 test_run.py
