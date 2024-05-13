@@ -157,10 +157,37 @@ class Preprocessor:
         return True
 
 
-#%% Save file
+#%% Custom class inherit from Dataset for fast access annData
+class SeqDataset(Dataset):
+    def __init__(self, adata: AnnData):
+        self.adata = adata
+
+    def __len__(self):
+        return self.adata.shape[0]
+
+    def __getitem__(self, idx):
+        return self.adata.X[idx, :]
+
+
+#%%
+def get_vocab(vocab_file: Literal[str, Path], special_tokens: List[str]):
+    vocab = GeneVocab.from_file(vocab_file)
+    for s in special_tokens:
+        if s not in vocab:
+            vocab.append_token(s)
+    return vocab
+
+
 def save_h5ad(adata: AnnData, save_dir: Path, compression_opts: int = 6) -> str:
     data_dir = save_dir / 'input_data.h5ad'
     adata.write(data_dir, compression='gzip', compression_opts=compression_opts)
+    return str(data_dir)
+
+
+def save_json(data: dict, save_dir: Path) -> str:
+    data_dir = save_dir / 'id2type.json'
+    with open(data_dir, 'w') as f:
+        json.dump(data, f, indent=2)
     return str(data_dir)
 
 

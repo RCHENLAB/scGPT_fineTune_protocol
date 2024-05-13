@@ -35,6 +35,8 @@ adata.obs[_batch_id] = adata.obs[input_data_batch_id_col].astype("category").cat
 celltype_id_labels = adata.obs[_cell_type_col].astype("category").cat.codes.values
 adata.obs[_cell_type_id] = celltype_id_labels
 adata.var[_gene_name] = adata.var.index.tolist()
+id2type = dict(enumerate(adata.obs[_cell_type_col].astype("category").cat.categories))
+task_info['id2type_json'] = save_json(id2type, save_dir)
 
 
 #%% Load and save pre-trained model settings
@@ -44,15 +46,11 @@ model_config_file = model_dir / "args.json"
 model_file = model_dir / "best_model.pt"
 vocab_file = model_dir / "vocab.json"
 shutil.copy(vocab_file, save_dir / "vocab.json")
-vocab = GeneVocab.from_file(vocab_file)
 pad_token = hyperparameter_defaults['task_configs']['pad_token']
 special_tokens = [pad_token, hyperparameter_defaults['task_configs']['cls_token'], hyperparameter_defaults['task_configs']['eoc_token']]
-for s in special_tokens:
-    if s not in vocab:
-        vocab.append_token(s)
-
+vocab = get_vocab(vocab_file, special_tokens)
 adata.var["id_in_vocab"] = [
-    1 if gene in vocab else -1 for gene in adata.var["gene_name"]
+    1 if gene in vocab else -1 for gene in adata.var[_gene_name]
 ]
 gene_ids_in_vocab = np.array(adata.var["id_in_vocab"])
 logger.info(

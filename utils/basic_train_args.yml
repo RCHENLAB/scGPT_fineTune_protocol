@@ -4,6 +4,7 @@ task_info:
   raw_dataset_name: "snRNA600k"  # dataset name in fine-tuning
   save_dir: ""  # Current task working directory. It's created in pre-process and use in fine-tune
   input_dataset_directory: ""  # pre-processed dataset for fine-tune input
+  id2type_json: ""  # training data ID-to-cellType mapping json path
 
 preprocess:
   do_norm: True  # BOOL, run normalization and log1p, default=True

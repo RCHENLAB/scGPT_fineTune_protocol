@@ -6,3 +6,4 @@
 .DS_Store
 allType_cls2.py
 test_run.py
+train_args.yml
