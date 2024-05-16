@@ -95,6 +95,11 @@ nlayers_cls = config.model_parameters['nlayers_cls']
 
 #%%
 gene_ids = np.array(vocab(genes), dtype=int)
+indices = list(range(adata.shape[0]))
+train_indices, test_indices = train_test_split(indices, test_size=0.1, random_state=42)
 
+# Create train and test subsets
+train_dataset = Subset(SeqDataset(adata), train_indices)
+test_dataset = Subset(SeqDataset(adata), test_indices)
 
 #%% END

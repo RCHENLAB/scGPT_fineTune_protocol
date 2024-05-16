@@ -166,7 +166,10 @@ class SeqDataset(Dataset):
         return self.adata.shape[0]
 
     def __getitem__(self, idx):
-        return self.adata.X[idx, :]
+        data = self.adata[idx, :].X
+        if not isinstance(data, np.ndarray):
+            data = data.toarray()
+        return torch.tensor(data, dtype=torch.float32)
 
 
 #%%

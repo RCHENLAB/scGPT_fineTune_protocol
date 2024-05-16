@@ -15,17 +15,18 @@ import yaml
 from pathlib import Path
 from typing import *
 from tqdm import tqdm
+from dataclasses import dataclass, field
 
 import torch
 from torch import nn
-from torch.utils.data import Dataset, DataLoader, BatchSampler, RandomSampler, SequentialSampler
+from torch.utils.data import Dataset, Subset, DataLoader, BatchSampler, RandomSampler, SequentialSampler
 from sklearn.model_selection import train_test_split
 from torchtext.vocab import Vocab
 from scipy.sparse import issparse
 
 import scgpt as scg
 from scgpt import SubsetsBatchSampler
-from scgpt.preprocess import Preprocessor
+from scgpt.preprocess import binning
 from scgpt.tokenizer import tokenize_and_pad_batch, random_mask_value
 from scgpt.model import TransformerModel, AdversarialDiscriminator
 from scgpt.tokenizer.gene_tokenizer import GeneVocab
