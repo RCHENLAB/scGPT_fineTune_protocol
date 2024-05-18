@@ -1,5 +1,6 @@
 # %%
 from .protocol_prelude import *
+from .misc import binning
 
 
 def tokenize_batch(
@@ -15,7 +16,6 @@ def tokenize_batch(
             f"Number of features in data ({data.shape[1]}) does not match "
             f"number of gene_ids ({len(gene_ids)})."
         )
-
     tokenized_data = []
     for i in range(len(data)):
         row = data[i]
@@ -33,7 +33,7 @@ def tokenize_batch(
         if return_pt:
             genes = torch.from_numpy(genes).long()
             values = torch.from_numpy(values).float()
-        tokenized_data.append((genes, values, mod_types))
+        tokenized_data.append((genes, values))
     return tokenized_data
 
 
@@ -43,17 +43,13 @@ def pad_batch(
     vocab: Vocab,
     pad_token: str = "<pad>",
     pad_value: int = 0,
-    cls_appended: bool = True,
-    vocab_mod: Vocab = None,
+    cls_appended: bool = True
 ) -> Dict[str, torch.Tensor]:
     max_ori_len = max(len(batch[i][0]) for i in range(len(batch)))
     max_len = min(max_ori_len, max_len)
     pad_id = vocab[pad_token]
-    if vocab_mod is not None:
-        mod_pad_id = vocab_mod[pad_token]
     gene_ids_list = []
     values_list = []
-    mod_types_list = []
     for i in range(len(batch)):
         gene_ids, values = batch[i]
         if len(gene_ids) > max_len:
@@ -197,9 +193,19 @@ class DataCollator:
                 f"reserve_keys must be a subset of the keys in the examples. "
                 f"Got {self.reserve_keys} but expected keys in {list(examples[0].keys())}."
             )
-        # Step 1: Tokenize and Pad Batch
         data = np.array([example['data'] for example in examples])
         gene_ids = np.array(self.filtered_gene_list)
+
+        # TODO: Step 1: binning data
+        if self.do_binning:
+            for i, expressions in enumerate(data):
+                expressions[self.keep_first_n_tokens:] = binning(
+                    row=expressions[self.keep_first_n_tokens:],
+                    n_bins=51,
+                )
+                data[i] = expressions
+
+        # Step 1: Tokenize and Pad Batch
         tokenized_and_padded_batch = tokenize_and_pad_batch(
             data,
             gene_ids,
@@ -217,12 +223,11 @@ class DataCollator:
         prepared_examples = prepare_data(tokenized_and_padded_batch, examples)
 
         # Step 3: Run _call_cls
-        data_dict = self._call_cls(examples, self.filtered_gene_list)
+        data_dict = self._call_cls(prepared_examples, self.filtered_gene_list)
 
         # add reserved keys
-        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         for key in self.reserve_keys:
-            data_ = [example[key] for example in examples]
+            data_ = [example[key] for example in prepared_examples]
             data_dict[key] = torch.stack(data_, dim=0)
 
         return data_dict
@@ -251,16 +256,8 @@ class DataCollator:
         for i in range(len(examples)):
             cell_type = examples[i]["cell_type_id"]
             expressions = torch.tensor(examples[i]["expressions"], dtype=torch.float16)
-            if self.do_binning:
-                expressions[self.keep_first_n_tokens:] = binning(
-                    row=expressions[self.keep_first_n_tokens:],
-                    n_bins=51,
-                )
-            processed_genes, processed_expressions = self._sample_or_truncate_plus_pad(
-                genes, expressions, self.max_length
-            )  # torch tensors of length _max_length
-            input_gene_ids.append(processed_genes)
-            target_expressions.append(processed_expressions)
+            input_gene_ids.append(genes)
+            target_expressions.append(expressions)
             cell_types.append(cell_type)
 
         input_gene_ids = torch.stack(input_gene_ids, dim=0)
@@ -280,30 +277,6 @@ class DataCollator:
             "target_expr": target_expressions,
             "cell_types": torch.tensor(cell_types, dtype=torch.long)
         }
-
-    def _random_split(
-            self,
-            *arrays: torch.Tensor,
-            ratio: float,
-    ) -> Tuple[torch.Tensor, ...]:
-        assert len(arrays) > 0
-        assert 0 < ratio < 1
-        if len(arrays) > 1:
-            assert all(
-                array.shape[0] == arrays[0].shape[0] for array in arrays
-            ), "The arrays must have the same length."
-
-        length = arrays[0].shape[0]
-        split_index = int(length * ratio)
-
-        indices = torch.randperm(length)
-        first_part_indices = indices[:split_index]
-        second_part_indices = indices[split_index:]
-
-        first_parts = tuple(array[first_part_indices] for array in arrays)
-        second_parts = tuple(array[second_part_indices] for array in arrays)
-
-        return first_parts + second_parts
 
     def get_mlm_probability(self) -> float:
         if isinstance(self.mlm_probability, float):
@@ -338,64 +311,3 @@ class DataCollator:
 
         masked_expressions = expressions.masked_fill(mask, self.mask_value)
         return masked_expressions
-
-    def _sample_or_truncate_plus_pad(
-            self,
-            genes: torch.LongTensor,
-            expressions: torch.Tensor,
-            max_length: int,
-    ) -> Tuple[torch.LongTensor, torch.Tensor]:
-        assert len(genes) == len(expressions)
-        if len(genes) == max_length:
-            return genes, expressions
-        if len(genes) > max_length:  # sample or truncate
-            if self.sampling:
-                return self._sample(genes, expressions, max_length)
-            else:
-                return genes[:max_length], expressions[:max_length]
-        else:  # pad
-            return self._pad(genes, expressions, max_length)
-
-    def _sample(
-            self,
-            genes: torch.LongTensor,
-            expressions: torch.Tensor,
-            max_length: int,
-    ) -> Tuple[torch.LongTensor, torch.Tensor]:
-        if self.keep_first_n_tokens == 0:
-            indices = torch.randperm(len(genes))[:max_length]
-            return genes[indices], expressions[indices]
-
-        # keep the first n tokens unchanged
-        _n = self.keep_first_n_tokens
-        indices = torch.randperm(len(genes) - _n)[: max_length - _n]
-        indices = torch.cat([torch.arange(_n), indices + _n], dim=0)
-        return genes[indices], expressions[indices]
-
-    def _pad(
-            self,
-            genes: torch.LongTensor,
-            expressions: torch.Tensor,
-            max_length: int,
-    ):
-        genes = torch.cat(
-            [
-                genes,
-                torch.full(
-                    (max_length - len(genes),),
-                    self.pad_token_id,
-                    dtype=genes.dtype,
-                ),
-            ]
-        )
-        expressions = torch.cat(
-            [
-                expressions,
-                torch.full(
-                    (max_length - len(expressions),),
-                    self.pad_value,
-                    dtype=expressions.dtype,
-                ),
-            ]
-        )
-        return genes, expressions

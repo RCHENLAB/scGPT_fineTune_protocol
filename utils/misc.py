@@ -166,10 +166,11 @@ class SeqDataset(Dataset):
         return self.adata.shape[0]
 
     def __getitem__(self, idx):
-        data = self.adata[idx, :].X
-        if not isinstance(data, np.ndarray):
-            data = data.toarray()
-        return torch.tensor(data, dtype=torch.float32)
+        sample = self.adata[idx, :]
+        return {
+            'data': sample.X.toarray().squeeze() if issparse(sample.X) else sample.X.squeeze(),
+            'cell_type_id': sample.obs['celltype_id'].item()
+        }
 
 
 #%%
@@ -196,58 +197,33 @@ def save_json(data: dict, save_dir: Path) -> str:
 
 #%% Data binning
 def _digitize(x: np.ndarray, bins: np.ndarray, side="both") -> np.ndarray:
-    """
-    Digitize the data into bins. This method spreads data uniformly when bins
-    have same values.
-
-    Args:
-
-    x (:class:`np.ndarray`):
-        The data to digitize.
-    bins (:class:`np.ndarray`):
-        The bins to use for digitization, in increasing order.
-    side (:class:`str`, optional):
-        The side to use for digitization. If "one", the left side is used. If
-        "both", the left and right side are used. Default to "one".
-
-    Returns:
-
-    :class:`np.ndarray`:
-        The digitized data.
-    """
     assert x.ndim == 1 and bins.ndim == 1
-
     left_digits = np.digitize(x, bins)
     if side == "one":
         return left_digits
-
     right_difits = np.digitize(x, bins, right=True)
-
     rands = np.random.rand(len(x))  # uniform random numbers
-
     digits = rands * (right_difits - left_digits) + left_digits
     digits = np.ceil(digits).astype(np.int64)
     return digits
 
 
 def binning(
-    row: Union[np.ndarray, torch.Tensor], n_bins: int, logger
+    row: Union[np.ndarray, torch.Tensor], n_bins: int, logger=None
 ) -> Union[np.ndarray, torch.Tensor]:
-    """Binning the row into n_bins."""
     dtype = row.dtype
     return_np = False if isinstance(row, torch.Tensor) else True
     row = row.cpu().numpy() if isinstance(row, torch.Tensor) else row
 
     if row.max() == 0:
-        logger.warning(
-            "The input data contains row of zeros. Please make sure this is expected."
-        )
+        # logger.warning(
+        #     "The input data contains row of zeros. Please make sure this is expected."
+        # )
         return (
             np.zeros_like(row, dtype=dtype)
             if return_np
             else torch.zeros_like(row, dtype=dtype)
         )
-
     if row.min() <= 0:
         non_zero_ids = row.nonzero()
         non_zero_row = row[non_zero_ids]
