@@ -3,7 +3,7 @@
 This is a protocol for doing fine-tuning on any single-cell dataset `(ex: .h5ad, .hd5f, etc.)` with [scGPT](https://www.nature.com/articles/s41592-024-02201-0).
 
 ## How-to-Use
-1. Pre-process
+1. Pre-process \
    Prepare the custom dataset to train-ready state for next fine-tuning step. \
    To see full help information on how to use preprocess.py script use this command:
    ```bash
@@ -19,7 +19,7 @@ This is a protocol for doing fine-tuning on any single-cell dataset `(ex: .h5ad,
    ```
    > Please keep in mind to change variable's values to your own settings
 
-2. Fine-tune
+2. Fine-tune \
    Start fine-tuning the foundation scGPT model with your custom dataset. Here we are introducing our eye-scGPT that is trained specific on
    the human retina single-nuclei and single-cell datasets. Please adjust any parameters with your own requirements. \
    To see full help information on how to use preprocess.py script use this command:
