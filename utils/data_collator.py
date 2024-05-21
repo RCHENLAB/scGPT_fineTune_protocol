@@ -17,6 +17,7 @@ def tokenize_batch(
             f"number of gene_ids ({len(gene_ids)})."
         )
     tokenized_data = []
+
     for i in range(len(data)):
         row = data[i]
         mod_types = None
@@ -83,6 +84,7 @@ def pad_batch(
         "genes": torch.stack(gene_ids_list, dim=0),
         "values": torch.stack(values_list, dim=0),
     }
+
     return batch_padded
 
 
@@ -124,16 +126,19 @@ def tokenize_and_pad_batch(
 
 def prepare_data(
     tokenized_and_padded_batch: Dict[str, torch.Tensor],
-    examples: List[Dict[str, Any]]
+    examples
 ) -> List[Dict[str, torch.Tensor]]:
     prepared_examples = []
     for i, example in enumerate(examples):
         cell_type_id = example['cell_type_id']
+        genes = tokenized_and_padded_batch['genes'][i]
         expressions = tokenized_and_padded_batch['values'][i]
         prepared_examples.append({
             'cell_type_id': cell_type_id,
+            'genes': genes,
             'expressions': expressions
         })
+
     return prepared_examples
 
 
@@ -153,6 +158,8 @@ class DataCollator:
     data_style: str = "cls"
     filtered_gene_list: List[int] = None
     vocab: Vocab = None
+    append_cls: bool = True,
+    include_zero_gene: bool = False,
     pad_token: str = "<pad>"
     cls_token: str = "<cls>"
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -196,7 +203,7 @@ class DataCollator:
         data = np.array([example['data'] for example in examples])
         gene_ids = np.array(self.filtered_gene_list)
 
-        # TODO: Step 1: binning data
+        # Step 1: binning data
         if self.do_binning:
             for i, expressions in enumerate(data):
                 expressions[self.keep_first_n_tokens:] = binning(
@@ -205,7 +212,7 @@ class DataCollator:
                 )
                 data[i] = expressions
 
-        # Step 1: Tokenize and Pad Batch
+        # Step 2: Tokenize and Pad Batch
         tokenized_and_padded_batch = tokenize_and_pad_batch(
             data,
             gene_ids,
@@ -213,17 +220,17 @@ class DataCollator:
             self.vocab,
             self.pad_token,
             self.pad_value,
-            append_cls=True,
-            include_zero_gene=False,
+            append_cls=self.append_cls,
+            include_zero_gene=self.include_zero_gene,
             cls_token=self.cls_token,
             return_pt=True
         )
 
-        # Step 2: Prepare Data
+        # Step 3: process data into correct format
         prepared_examples = prepare_data(tokenized_and_padded_batch, examples)
 
-        # Step 3: Run _call_cls
-        data_dict = self._call_cls(prepared_examples, self.filtered_gene_list)
+        # Step 4: Create train-ready data dict
+        data_dict = self._call_cls(prepared_examples)
 
         # add reserved keys
         for key in self.reserve_keys:
@@ -234,31 +241,32 @@ class DataCollator:
 
     def _call_cls(
             self,
-            examples: List[Dict[str, torch.Tensor]],
-            genes: List[int]
+            examples: List[Dict[str, torch.Tensor]]
     ) -> Dict[str, torch.Tensor]:
         """
         call if training object is Cell Annotation (Classifier)
         e.g. examples -> format:
-        {
-            'cell_type_id': 1, # int8
-            'expressions': [0.11, 2., ..., 0.3] # List[float16]
-        }
-        :param examples: List of dictionaries with keys 'cell_type_id', 'expressions'
-        :param genes: Tensor list of long numbers for gene tokens
+       [
+            {
+                'cell_type_id': 1  # int8
+                'genes': [1, 3, 42, 53, ..., 60603]  # List[int]
+                'expressions': [0.11, 2., ..., 0.3]  # List[float16]
+            },
+            ...
+        ]
+        :param examples: List of Dict with keys 'cell_type_id', 'genes', 'expressions'
         :return: data_dict: Dictionary with keys 'input_gene_ids', 'input_expr', 'target_expr', 'cell_types'
         """
 
         input_gene_ids = []
         target_expressions = []
         cell_types = []
-        genes = torch.tensor(genes, dtype=torch.long)
         for i in range(len(examples)):
-            cell_type = examples[i]["cell_type_id"]
+            genes = torch.tensor(examples[i]["genes"], dtype=torch.int32)
             expressions = torch.tensor(examples[i]["expressions"], dtype=torch.float16)
             input_gene_ids.append(genes)
             target_expressions.append(expressions)
-            cell_types.append(cell_type)
+            cell_types.append(examples[i]["cell_type_id"])
 
         input_gene_ids = torch.stack(input_gene_ids, dim=0)
         target_expressions = torch.stack(target_expressions, dim=0)

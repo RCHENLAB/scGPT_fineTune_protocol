@@ -2,6 +2,7 @@
 /wandb
 /.idea
 /pretrained_models/*
+/datasets/*
 __pycahce__
 */__pycache__
 .DS_Store

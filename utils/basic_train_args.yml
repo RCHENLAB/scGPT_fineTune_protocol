@@ -1,7 +1,7 @@
 # Fine-tuning Parameters Configuration
 task_info:
-  raw_dataset_directory: "./dataset/snRNA600k.h5ad"
-  raw_dataset_name: "snRNA600k"  # dataset name in fine-tuning
+  raw_dataset_directory: ""
+  raw_dataset_name: "eyeGPT"  # dataset name in fine-tuning
   save_dir: ""  # Current task working directory. It's created in pre-process and use in fine-tune
   input_dataset_directory: ""  # pre-processed dataset for fine-tune input
   id2type_json: ""  # training data ID-to-cellType mapping json path
@@ -22,7 +22,7 @@ preprocess:
 
 model_parameters:
   seed: 0
-  load_model: "pretrained_models/scgpt_human"  # load trained model folder (*.pt)
+  load_model: "pretrained_models/scGPT_human"  # load trained model folder (*.pt)
   do_train: true  # defines train / eval task
   epochs: 1
   use_flash_attn: false  # recommended if flash-attn is installed
@@ -76,6 +76,7 @@ task_configs:
   input_style: "binned"  # options: # "normed_raw" / "log1p" / "binned"
   input_emb_style: "continuous"  # options: "category" / "continuous" / "scaling"
   cell_emb_style: "cls"  # options: "avg-pool" / "w-pool" / "cls"
+  append_cls: true
   include_zero_gene: false
   sort_per_seq_batch: false
   explicit_zero_prob: false

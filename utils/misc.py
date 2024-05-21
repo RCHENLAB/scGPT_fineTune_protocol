@@ -1,6 +1,4 @@
 #%%
-from anndata import AnnData
-
 from .protocol_prelude import *
 
 
@@ -19,6 +17,28 @@ class ProtocolWandB:
             settings=wandb.Settings(start_method="fork"),
             name=self.wandb_configs['name']
         )
+
+    def define_wandb_metrcis(self):
+        wandb.define_metric("train/mse", summary="min")
+        wandb.define_metric("train/err", summary="min")
+        wandb.define_metric("valid/mse", summary="min", step_metric="epoch")
+        wandb.define_metric("valid/err", summary="min", step_metric="epoch")
+
+
+#%% Load config file
+def load_config(preprocess: bool = None, train: bool = None, custom_config: str = None) -> Dict:
+    if custom_config:
+        with open(custom_config, 'r') as in_configs:
+            hyperparameter_defaults = yaml.safe_load(in_configs)
+    elif preprocess == train and preprocess is not None:
+        raise Exception('Only can load either Pre-process config file or Training config file.')
+    elif preprocess:
+        with open('basic_train_args.yml', 'r') as in_configs:
+            hyperparameter_defaults = yaml.safe_load(in_configs)
+    elif train:
+        with open('train_args.yml', 'r') as in_configs:
+            hyperparameter_defaults = yaml.safe_load(in_configs)
+    return hyperparameter_defaults
 
 
 #%%
