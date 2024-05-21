@@ -33,7 +33,7 @@ def load_config(preprocess: bool = None, train: bool = None, custom_config: str 
     elif preprocess == train and preprocess is not None:
         raise Exception('Only can load either Pre-process config file or Training config file.')
     elif preprocess:
-        with open('basic_train_args.yml', 'r') as in_configs:
+        with open('utils/basic_train_args.yml', 'r') as in_configs:
             hyperparameter_defaults = yaml.safe_load(in_configs)
     elif train:
         with open('train_args.yml', 'r') as in_configs:
@@ -85,7 +85,7 @@ class Preprocessor:
         self.hvg_flavor = hvg_flavor
         self.logger = logger
 
-    def __call__(self, adata, batch_key: Optional[str] = None) -> Dict:
+    def __call__(self, adata, batch_key: Optional[str] = None):
         key_to_process = self.use_key
         if key_to_process == "X":
             key_to_process = None  # the following scanpy apis use arg None to use X

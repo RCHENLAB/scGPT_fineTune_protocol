@@ -39,6 +39,7 @@ def main(
     dropout,
     schedule_ratio,
     schedule_interval,
+    save_eval_interval,
     nlayers,
     nheads,
     embsize,
@@ -69,6 +70,7 @@ def main(
     model_params['dropout'] = dropout
     model_params['schedule_ratio'] = schedule_ratio
     model_params['schedule_interval'] = schedule_interval
+    model_params['save_eval_interval'] = save_eval_interval
     model_params['nlayers'] = nlayers
     model_params['nheads'] = nheads
     model_params['embsize'] = embsize

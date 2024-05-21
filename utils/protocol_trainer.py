@@ -137,7 +137,7 @@ def evaluate(
             celltype_labels = batch_data["cell_types"].to(device)
 
             src_key_padding_mask = input_gene_ids.eq(pad_vocab)
-            with torch.cuda.amp.autocast(enabled=config.amp):
+            with torch.cuda.amp.autocast(enabled=config.model_parameters['amp']):
                 output_dict = model(
                     input_gene_ids,
                     input_values,

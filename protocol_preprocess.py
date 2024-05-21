@@ -47,8 +47,8 @@ def main(
     preprocess_config['filter_cell_by_counts'] = filter_cell_by_counts
     preprocess_config['n_hvg'] = n_hvg
     preprocess_config['hvg_flavor'] = hvg_flavor
-    preprocess_config['cell_type_col'] = cell_type_col
-    preprocess_config['batch_id_col'] = batch_id_col
+    preprocess_config['dataset_cell_type_col'] = cell_type_col
+    preprocess_config['dataset_batch_id_col'] = batch_id_col
     model_params['do_train'] = do_train
     model_params['load_model'] = load_model
 
@@ -74,6 +74,8 @@ def main(
     adata.obs[_batch_id] = adata.obs[input_data_batch_id_col].astype("category").cat.codes.values
     celltype_id_labels = adata.obs[_cell_type_col].astype("category").cat.codes.values
     adata.obs[_cell_type_id] = celltype_id_labels
+    adata.var.index = adata.var.index.astype(str)
+    adata.var.index.name = None
     adata.var[_gene_name] = adata.var.index.tolist()
     id2type = dict(enumerate(adata.obs[_cell_type_col].astype("category").cat.categories))
     task_info['id2type_json'] = save_json(id2type, save_dir)
