@@ -5,6 +5,7 @@ from utils import *
 @click.command()
 @click.option('--max_seq_len', type=int, required=True, help='Max input sequence length during training. The length should be <= n_hvg+1')
 @click.option('--config', type=str, required=True, help='Use config file. If using custom config file, input the path to the file directly.  Options=[pp, train, Any<Path>]')
+@click.option('--load_model', type=str, default='pretrained_models/scGPT_human', help='directory to pretrained/tuned model directory. Default=pretrained_models/scGPT_human')
 @click.option('--include_zero_gene', type=bool, default=False, help='Include all zero genes in sequence. Default=False')
 @click.option('--append_cls', type=bool, default=True, help='Append <cls> to the sequence. Default=True')
 @click.option('--epochs', type=int, default=3, help='Epochs for training. Default=3')
@@ -26,6 +27,7 @@ from utils import *
 def main(
     max_seq_len,
     config,
+    load_model,
     include_zero_gene,
     append_cls,
     epochs,
@@ -59,6 +61,7 @@ def main(
     task_configs = hyperparameter_defaults['task_configs']
 
     # update configs
+    model_params['load_model'] = load_model
     model_params['epochs'] = epochs
     model_params['use_flash_attn'] = use_flash_attn
     model_params['pre_norm'] = pre_norm
@@ -77,6 +80,7 @@ def main(
     model_params['nlayers_cls'] = nlayers_cls
     task_configs['include_zero_gene'] = include_zero_gene
     task_configs['append_cls'] = append_cls
+    task_configs['max_seq_len'] = max_seq_len
 
     # Create WandB instance and enable cloud-syncing
     wandb_instance = ProtocolWandB(hyperparameter_defaults)

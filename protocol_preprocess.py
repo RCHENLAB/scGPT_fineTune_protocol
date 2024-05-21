@@ -15,6 +15,9 @@ from utils import *
 @click.option('--batch_id_col', type=str, required=True, help='Column name for batch IDs. (ex: donor, etc.)')
 @click.option('--do_train', type=bool, required=True, default=True, help='Pre-process for fine-tuning task. If false, then evaluation. Default=True.')
 @click.option('--load_model', type=str, default='pretrained_models/scGPT_human', help='directory to pretrained/tuned model directory. Default=pretrained_models/scGPT_human')
+@click.option('--wandb_sync', type=bool, default=False, help='Enable WandB cloud syncing. Default=False')
+@click.option('--wandb_project', type=str, required=True, help='Project name in WandB.')
+@click.option('--wandb_name', type=str, default='', help='Run name in WandB. Default=EMPTY.')
 def main(
     dataset_directory,
     config,
@@ -27,7 +30,10 @@ def main(
     cell_type_col,
     batch_id_col,
     do_train,
-    load_model
+    load_model,
+    wandb_sync,
+    wandb_project,
+    wandb_name
 ):
     # Load config
     if config == 'pp':
@@ -38,6 +44,7 @@ def main(
     task_info = hyperparameter_defaults['task_info']
     preprocess_config = hyperparameter_defaults['preprocess']
     model_params = hyperparameter_defaults['model_parameters']
+    wandb_config = hyperparameter_defaults['wandb_configs']
 
     # update config
     task_info['raw_dataset_directory'] = dataset_directory
@@ -51,6 +58,9 @@ def main(
     preprocess_config['dataset_batch_id_col'] = batch_id_col
     model_params['do_train'] = do_train
     model_params['load_model'] = load_model
+    wandb_config['mode'] = 'online' if wandb_sync else 'offline'
+    wandb_config['project'] = wandb_project
+    wandb_config['name'] = wandb_name
 
     # read data and create save directory
     dataset_name = task_info['raw_dataset_name']
