@@ -4,6 +4,9 @@ Usage: protocol_preprocess.py [OPTIONS]
 
 Options:
   --dataset_directory TEXT          Directory to the dataset  [required]
+  --config TEXT                     Use config file. If using custom config
+                                    file, input the path to the file directly.
+                                    Options=[pp, train, Any<Path>]. Default=pp.
   --dataset_name TEXT               Dataset name. Default=eyeGPT
   --do_norm BOOLEAN                 Normalize gene counts, Default=True
   --filter_gene_by_counts INTEGER   Filter by gene counts. Default=0
