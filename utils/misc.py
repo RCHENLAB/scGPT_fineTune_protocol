@@ -26,16 +26,16 @@ class ProtocolWandB:
 
 
 #%% Load config file
-def load_config(preprocess: bool = None, train: bool = None, custom_config: str = None) -> Dict:
+def load_config(preprocess: bool = None, train: bool = None, eval: bool = None, custom_config: str = None) -> Dict:
     if custom_config:
         with open(custom_config, 'r') as in_configs:
             hyperparameter_defaults = yaml.safe_load(in_configs)
-    elif preprocess == train and preprocess is not None:
+    elif preprocess == train and train == eval and preprocess is not None:
         raise Exception('Only can load either Pre-process config file or Training config file.')
     elif preprocess:
         with open('utils/basic_train_args.yml', 'r') as in_configs:
             hyperparameter_defaults = yaml.safe_load(in_configs)
-    elif train:
+    elif train or eval:
         with open('train_args.yml', 'r') as in_configs:
             hyperparameter_defaults = yaml.safe_load(in_configs)
     return hyperparameter_defaults

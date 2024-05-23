@@ -2,6 +2,7 @@
 import copy
 import gc
 import json
+import pickle
 import os
 import sys
 import shutil
@@ -10,9 +11,12 @@ import warnings
 import scanpy as sc
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
 import wandb
 import yaml
 import click
+from anndata import AnnData
 from numpy import ndarray, dtype
 from pathlib import Path
 from typing import *
@@ -22,10 +26,10 @@ from dataclasses import dataclass, field
 import torch
 from torch import nn
 from torch.utils.data import Dataset, Subset, DataLoader, BatchSampler, RandomSampler, SequentialSampler
-from sklearn.model_selection import train_test_split
 from torchtext.vocab import Vocab
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score, precision_recall_fscore_support, confusion_matrix
 from scipy.sparse import issparse
-from anndata import AnnData
 
 import scgpt as scg
 from scgpt import SubsetsBatchSampler

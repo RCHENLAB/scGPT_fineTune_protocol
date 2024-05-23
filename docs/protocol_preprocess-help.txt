@@ -4,16 +4,18 @@ Usage: protocol_preprocess.py [OPTIONS]
 
 Options:
   --dataset_directory TEXT          Directory to the dataset  [required]
-  --config TEXT                     Use config file. If using custom config
-                                    file, input the path to the file directly.
-                                    Options=[pp, train, Any<Path>]. Default=pp.
+  --config TEXT                     Use config file. Options=[pp, train, eval,vAny<Path>]
   --dataset_name TEXT               Dataset name. Default=eyeGPT
   --do_norm BOOLEAN                 Normalize gene counts, Default=True
   --filter_gene_by_counts INTEGER   Filter by gene counts. Default=0
   --filter_cell_by_counts INTEGER   Filter by cell counts. Default=0
   --n_hvg INTEGER                   Number for highly variable genes. Default=5000
-  --hvg_flavor TEXT                 Data processor. Options: [seurat_v3, cell_ranger]. Default=seurat_v3
+  --hvg_flavor TEXT                 Data processor. Options: seurat_v3, cell_ranger. Default=seurat_v3
   --cell_type_col TEXT              Column name for cell type.  [required]
   --batch_id_col TEXT               Column name for batch IDs. (ex: donor, etc.) [required]
-  --load_model TEXT                 directory to pretrained/tuned model directory.  Default=pretrained_models/scGPT_human
+  --do_train BOOLEAN                Pre-process for fine-tuning task. If false, then evaluation. Default=True.
+  --load_model TEXT                 directory to pretrained/tuned model directory. Default=pretrained_models/scGPT_human
+  --wandb_sync BOOLEAN              Enable WandB cloud syncing. Default=False
+  --wandb_project TEXT              Project name in WandB.  [required]
+  --wandb_name TEXT                 Run name in WandB. Default=EMPTY.
   --help                            Show this message and exit.

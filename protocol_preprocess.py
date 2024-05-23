@@ -4,7 +4,7 @@ from utils import *
 #%% Main Script for preprocessor
 @click.command()
 @click.option('--dataset_directory', type=str, required=True, help='Directory to the dataset')
-@click.option('--config', type=str, default='pp', help='Use config file. Options=[pp, train, Any<Path>]')
+@click.option('--config', type=str, default='pp', help='Use config file. Options=[pp, train, eval, Any<Path>]')
 @click.option('--dataset_name', type=str, default='eyeGPT', help='Dataset name. Default=eyeGPT')
 @click.option('--do_norm', type=bool, default=True, help='Normalize gene counts, Default=True')
 @click.option('--filter_gene_by_counts', type=int, default=0, help='Filter by gene counts. Default=0')
@@ -13,7 +13,7 @@ from utils import *
 @click.option('--hvg_flavor', type=str, default='seurat_v3', help='Data processor. Options: seurat_v3, cell_ranger. Default=seurat_v3')
 @click.option('--cell_type_col', type=str, required=True, help='Column name for cell type.')
 @click.option('--batch_id_col', type=str, required=True, help='Column name for batch IDs. (ex: donor, etc.)')
-@click.option('--do_train', type=bool, required=True, default=True, help='Pre-process for fine-tuning task. If false, then evaluation. Default=True.')
+@click.option('--do_train', type=bool, default=True, help='Pre-process for fine-tuning task. If false, then evaluation. Default=True.')
 @click.option('--load_model', type=str, default='pretrained_models/scGPT_human', help='directory to pretrained/tuned model directory. Default=pretrained_models/scGPT_human')
 @click.option('--wandb_sync', type=bool, default=False, help='Enable WandB cloud syncing. Default=False')
 @click.option('--wandb_project', type=str, required=True, help='Project name in WandB.')

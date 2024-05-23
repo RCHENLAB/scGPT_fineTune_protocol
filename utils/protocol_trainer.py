@@ -2,10 +2,11 @@
 from .protocol_prelude import *
 
 
+#%% Train func
 def train(
     model: nn.Module,
     loader: DataLoader,
-    pad_vocab: int,  # = vocab[pad_token]
+    pad_vocab: int,  # =
     criterion_cls,
     config,
     scheduler,
@@ -111,6 +112,7 @@ def train(
             start_time = time.time()
 
 
+#%% Eval func
 def evaluate(
     model: nn.Module,
     loader: DataLoader,
@@ -171,3 +173,66 @@ def evaluate(
         return np.concatenate(predictions, axis=0)
 
     return total_loss / total_num, total_error / total_num
+
+
+#%% Test func
+def test(
+    model: nn.Module,
+    loader: DataLoader,
+    adata: AnnData,
+    true_cell_type_ids: List[str],
+    ref_id2type: dict,
+    pad_vocab,
+    criterion_cls,
+    config,
+    epoch,
+    logger,
+    device
+):
+    model.eval()
+    predictions = evaluate(
+        model,
+        loader=loader,
+        pad_vocab=pad_vocab,
+        criterion_cls=criterion_cls,
+        config=config,
+        epoch=epoch,
+        device=device,
+        return_raw=True
+    )
+    unique_true_cell_type_ids = [str(i) for i in set(true_cell_type_ids)]
+    accuracy = accuracy_score(true_cell_type_ids, predictions)
+    precision_per_class, recall_per_class, f1_per_class, _ = precision_recall_fscore_support(true_cell_type_ids, predictions, labels=unique_true_cell_type_ids)
+    macro_precision = precision_per_class.mean()
+    macro_recall = recall_per_class.mean()
+    macro_f1 = f1_per_class.mean()
+
+    precision_dict = {}
+    for label, precision in zip(unique_true_cell_type_ids, precision_per_class):
+        precision_dict[ref_id2type[int(label)]] = precision
+
+    wrong_predictions = {}
+    for gt, pred, idx in zip(true_cell_type_ids, predictions, range(len(predictions))):
+        if gt != pred:
+            wrong_predictions[adata.obs.index[idx]] = [ref_id2type[gt], ref_id2type[pred]]
+
+    print('*' * 20)
+    logger.info(
+        f"Accuracy: {accuracy:.3f}\n"
+        f"Precision: {macro_precision:.3f}\n"
+        f"Recall: {macro_recall:.3f}\n"
+        f"Macro F1: {macro_f1:.3f}"
+    )
+    print('*' * 20)
+
+    results = {
+        "test/accuracy": accuracy,
+        "test/precision": macro_precision,
+        "test/recall": macro_recall,
+        "test/macro_f1": macro_f1,
+    }
+
+    return predictions, results, precision_dict, wrong_predictions
+
+
+#%% END

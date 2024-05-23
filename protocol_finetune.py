@@ -3,9 +3,9 @@ from utils import *
 
 
 @click.command()
-@click.option('--max_seq_len', type=int, required=True, help='Max input sequence length during training. The length should be <= n_hvg+1')
-@click.option('--config', type=str, required=True, help='Use config file. If using custom config file, input the path to the file directly.  Options=[pp, train, Any<Path>]')
-@click.option('--load_model', type=str, default='pretrained_models/scGPT_human', help='directory to pretrained/tuned model directory. Default=pretrained_models/scGPT_human')
+@click.option('--max_seq_len', type=int, required=True, help='Max input sequence length during training. The length should be <= n_hvg+1.')
+@click.option('--config', type=str, default='train', help='Use config file. If using custom config file, input the path to the file directly.  Options=[pp, train, eval, Any<Path>]. Default=train')
+@click.option('--load_model', type=str, default='', help='directory to pretrained/tuned model directory. Default=same model used in preprocess')
 @click.option('--include_zero_gene', type=bool, default=False, help='Include all zero genes in sequence. Default=False')
 @click.option('--append_cls', type=bool, default=True, help='Append <cls> to the sequence. Default=True')
 @click.option('--epochs', type=int, default=3, help='Epochs for training. Default=3')
@@ -52,6 +52,8 @@ def main(
         hyperparameter_defaults = load_config(preprocess=True)
     elif config == 'train':
         hyperparameter_defaults = load_config(train=True)
+    elif config == 'eval':
+        hyperparameter_defaults = load_config(eval=True)
     else:
         hyperparameter_defaults = load_config(custom_config=config)
 
@@ -61,7 +63,7 @@ def main(
     task_configs = hyperparameter_defaults['task_configs']
 
     # update configs
-    model_params['load_model'] = load_model
+    model_params['load_model'] = load_model if len(load_model) > 0 else model_params['load_model']
     model_params['epochs'] = epochs
     model_params['use_flash_attn'] = use_flash_attn
     model_params['pre_norm'] = pre_norm
@@ -148,8 +150,8 @@ def main(
 
     # Read input annData
     adata = sc.read_h5ad(config.task_info['input_dataset_directory'], backed='r')
-    num_types = len(np.unique(adata.obs[config.preprocess['_FIXED_CELL_TYPE_COL']]))
-    genes = adata.var[config.preprocess['_FIXED_GENE_COL']].tolist()
+    num_types = len(np.unique(adata.obs[preprocess_config['_FIXED_CELL_TYPE_COL']]))
+    genes = adata.var[preprocess_config['_FIXED_GENE_COL']].tolist()
 
     # Load pre-trained model weights
     logger.info(f'Start loading pre-trained model and weights ...')

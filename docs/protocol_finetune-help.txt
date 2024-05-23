@@ -1,27 +1,26 @@
 Usage: protocol_finetune.py [OPTIONS]
 
 Options:
-  --max_seq_len INTEGER             Max input sequence length during training.
-                                    The length should be <= n_hvg+1  [required]
-  --config TEXT                     Use config file. If using custom config
-                                    file, input the path to the file directly.
-                                    Options=[pp, train, Any<Path>]  [required]
-  --include_zero_gene BOOLEAN       Include all zero genes in sequence. Default=False
-  --append_cls BOOLEAN              Append <cls> to the sequence. Default=True
-  --epochs INTEGER                  Epochs for training. Default=3
-  --use_flash_attn BOOLEAN          Enable flash-attn. Default=False
-  --pre_norm BOOLEAN                Enable pre-normalization. Default=False
-  --amp BOOLEAN                     Enable automatic mixed precision. Default=True
-  --freeze_predecoder BOOLEAN       Freeze pre-decoder. Default=False
-  --train_test_split_ratio FLOAT    Ratio for splitting train/val dataset. Default=0.1
-  --batch_size INTEGER              Batch size during training. Default=32
-  --lr FLOAT                        Learning rate. Default=0.0001
-  --dropout FLOAT                   Dropout rate. Default=0.2
-  --schedule_ratio FLOAT            Learning rate changing ratio per schedule interval. Default=0.9
-  --schedule_interval INTEGER       Epochs to change the learning rate. Default=1
-  --save_eval_interval INTEGER      Epochs to do evaluation and save the best model so far. Default=1
-  --nlayers INTEGER                 Transformer encoder layers. Default=12
-  --nheads INTEGER                  Attention heads. Default=4
-  --embsize INTEGER                 Embedding dimension. Default=512
-  --nlayers_cls INTEGER             Decoder layers for classifier. Default=3
-  --help                            Show this message and exit.
+  --max_seq_len INTEGER           Max input sequence length during training. The length should be <= n_hvg+1.  [required]
+  --config TEXT                   Use config file. If using custom config file, input the path to the file directly.
+                                  Options=[pp, train, eval, Any<Path>]. Default=train
+  --load_model TEXT               directory to pretrained/tuned model directory. Default=same model used in preprocess
+  --include_zero_gene BOOLEAN     Include all zero genes in sequence. Default=False
+  --append_cls BOOLEAN            Append <cls> to the sequence. Default=True
+  --epochs INTEGER                Epochs for training. Default=3
+  --use_flash_attn BOOLEAN        Enable flash-attn. Default=False
+  --pre_norm BOOLEAN              Enable pre-normalization. Default=False
+  --amp BOOLEAN                   Enable automatic mixed precision. Default=True
+  --freeze_predecoder BOOLEAN     Freeze pre-decoder. Default=False
+  --train_test_split_ratio FLOAT  Ratio for splitting train/val dataset. Default=0.1
+  --batch_size INTEGER            Batch size during training. Default=32
+  --lr FLOAT                      Learning rate. Default=0.0001
+  --dropout FLOAT                 Dropout rate. Default=0.2
+  --schedule_ratio FLOAT          Learning rate changing ratio per schedule interval. Default=0.9
+  --schedule_interval INTEGER     Epochs to change the learning rate. Default=1
+  --save_eval_interval INTEGER    Epochs to do evaluation and save the best model so far. Default=1
+  --nlayers INTEGER               Transformer encoder layers. Default=12
+  --nheads INTEGER                Attention heads. Default=4
+  --embsize INTEGER               Embedding dimension. Default=512
+  --nlayers_cls INTEGER           Decoder layers for classifier. Default=3
+  --help                          Show this message and exit.
