@@ -4,6 +4,7 @@ from utils import *
 
 @click.command()
 @click.option('--load_model', type=str, required=True, help='directory to pretrained/tuned model directory.')
+@click.option('--inference_data_dir', type=str, required=True, help='directory to test/inference dataset. File should be hd5f format (eg. h5ad, etc)')
 @click.option('--max_seq_len', type=int, default=-1, help='Max input sequence length during training. The length should be <= n_hvg+1. Default=same length as loaded model definition')
 @click.option('--config', type=str, default='eval', help='Use config file. If using custom config file, input the path to the file directly.  Options=[pp, train, eval, Any<Path>]')
 @click.option('--freeze_predecoder', type=bool, default=False, help='Freeze pre-decoder. Default=False')
@@ -13,6 +14,7 @@ from utils import *
 @click.option('--wandb_name', type=str, default='', help='Run name in WandB. Default=EMPTY.')
 def main(
     load_model,
+    inference_data_dir,
     max_seq_len,
     config,
     freeze_predecoder,
@@ -34,6 +36,7 @@ def main(
 
     # update configs
     task_info = hyperparameter_defaults['task_info']
+    preprocess_config = hyperparameter_defaults['preprocess']
     model_params = hyperparameter_defaults['model_parameters']
     task_configs = hyperparameter_defaults['task_configs']
     wandb_config = hyperparameter_defaults['wandb_configs']
@@ -101,7 +104,7 @@ def main(
     save_eval_interval = config.model_parameters['save_eval_interval']
 
     # Read input annData
-    adata = sc.read_h5ad(config.task_info['input_dataset_directory'], backed='r')
+    adata = sc.read_h5ad(inference_data_dir, backed='r')
     num_types = len(np.unique(adata.obs[config.preprocess['_FIXED_CELL_TYPE_COL']]))
     genes = adata.var[config.preprocess['_FIXED_GENE_COL']].tolist()
 
