@@ -43,7 +43,7 @@ def main(
     model_params['epochs'] = epochs
     model_params['batch_size'] = batch_size
     model_params['freeze_predecoder'] = freeze_predecoder
-    task_configs['max_seq_len'] = max_seq_len if max_seq_len == -1 else task_configs['max_seq_len']
+    task_configs['max_seq_len'] = task_configs['max_seq_len'] if max_seq_len == -1 else max_seq_len
     wandb_config['mode'] = 'online' if wandb_sync else 'offline'
     wandb_config['project'] = wandb_project
     wandb_config['name'] = wandb_name
