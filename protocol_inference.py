@@ -43,7 +43,7 @@ def main(
     model_params['batch_size'] = batch_size
     model_params['freeze_predecoder'] = freeze_predecoder
     task_configs['max_seq_len'] = max_seq_len if max_seq_len == -1 else task_configs['max_seq_len']
-    wandb_config['mode'] = wandb_sync
+    wandb_config['mode'] = 'online' if wandb_sync else 'offline'
     wandb_config['project'] = wandb_project
     wandb_config['name'] = wandb_name
 
@@ -107,7 +107,7 @@ def main(
 
     # Load pre-trained model weights
     logger.info(f'Start loading pre-trained model and weights ...')
-    model_dir = Path(config.model_parameters['load_model'])
+    model_dir = Path(model_params['load_model'])
     model_file = model_dir / "best_model.pt"  # TODO: change the model file name if different
     model_config_file = model_dir / "args.json"
     vocab_file = model_dir / "vocab.json"
