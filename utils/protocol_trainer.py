@@ -214,7 +214,7 @@ def test(
     wrong_predictions = {}
     for gt, pred, idx in zip(true_cell_type_ids, predictions, range(len(predictions))):
         if gt != pred:
-            wrong_predictions[adata.obs.index[idx]] = [ref_id2type[gt], ref_id2type[pred]]
+            wrong_predictions[adata.obs.index[idx]] = [ref_id2type[gt], ref_id2type[str(pred)]]
 
     print('*' * 20)
     logger.info(
