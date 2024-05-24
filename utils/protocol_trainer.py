@@ -209,7 +209,7 @@ def test(
 
     precision_dict = {}
     for label, precision in zip(unique_true_cell_type_ids, precision_per_class):
-        precision_dict[ref_id2type[int(label)]] = precision
+        precision_dict[ref_id2type[label]] = precision
 
     wrong_predictions = {}
     for gt, pred, idx in zip(true_cell_type_ids, predictions, range(len(predictions))):
