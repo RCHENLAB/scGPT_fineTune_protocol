@@ -275,7 +275,7 @@ def main(
 
     # generate UMAP
     logger.info(f'Generating UMAP plots ... ')
-    adata.obs["predictions"] = [ref_id2type[p] for p in predictions]
+    adata.obs["predictions"] = [ref_id2type[str(p)] for p in predictions]
 
     palette_ = []
     while len(palette_) < len(unique_ref_cell_types):
@@ -316,7 +316,7 @@ def main(
     # generate confusion matrix
     logger.info(f'Generating confusion matrix ... ')
 
-    cm = confusion_matrix(adata.obs[_cell_type_col], [ref_id2type[p] for p in predictions], labels=test_cell_types)
+    cm = confusion_matrix(adata.obs[_cell_type_col], [ref_id2type[str(p)] for p in predictions], labels=test_cell_types)
     cm_normalized = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
 
     prediction_result_dict = {
