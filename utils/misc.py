@@ -26,7 +26,7 @@ class ProtocolWandB:
 
 
 #%% Load config file
-def load_config(preprocess: bool = None, train: bool = None, eval: bool = None, custom_config: str = None) -> Dict:
+def load_config(preprocess: bool = None, train: bool = None, eval: bool = None, custom_config: str = None, load_model_dir : str = None) -> Dict:
     if custom_config:
         with open(custom_config, 'r') as in_configs:
             hyperparameter_defaults = yaml.safe_load(in_configs)
@@ -35,9 +35,21 @@ def load_config(preprocess: bool = None, train: bool = None, eval: bool = None, 
     elif preprocess:
         with open('utils/basic_train_args.yml', 'r') as in_configs:
             hyperparameter_defaults = yaml.safe_load(in_configs)
-    elif train or eval:
+    elif train:
         with open('train_args.yml', 'r') as in_configs:
             hyperparameter_defaults = yaml.safe_load(in_configs)
+    elif eval:
+        load_model_path = Path(load_model_dir)
+        with open(load_model_path / 'dev_train_args.yml', 'r') as trained_model_configs:
+            trained_model_defaults = yaml.safe_load(trained_model_configs)
+        with open('train_args.yml', 'r') as in_configs:
+            hyperparameter_defaults = yaml.safe_load(in_configs)
+        update_model_params = {
+            'lr': trained_model_defaults['model_parameters']['lr'],
+            'dropout': trained_model_defaults['model_parameters']['dropout']
+        }
+        hyperparameter_defaults['model_parameters'].update(update_model_params)
+        hyperparameter_defaults['task_info']['id2type_json'] = trained_model_defaults['task_info']['id2type_json']
     return hyperparameter_defaults
 
 
