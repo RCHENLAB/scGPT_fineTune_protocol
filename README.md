@@ -4,14 +4,23 @@
 
 This is a protocol for doing fine-tuning on any single-cell dataset `(ex: .h5ad, .hd5f, etc.)` with [scGPT](https://www.nature.com/articles/s41592-024-02201-0).
 
-## How-to-Use
+## Quick How-to-Use Guide
+* **Fine-tuning Custom scGPT Model**
+  1. Prepare the dataset for fine-tuning task. Run `protocol_preprocess.py`
+  2. Run `protocol_finetune.py`
+
+* **Inference on Trained Model**
+  1. Prepare the dataset for inference task. Run `protocol_preprocess.py`
+  2. Run `protocol_inference.py`
+
+## Main Scripts
 1. **Pre-process** \
    Prepare the custom dataset to train-ready state for next fine-tuning step. \
    To see full help information on how to use preprocess.py script use this command:
    ```bash
     python protocol_preprocess.py --help
    ```
-   Run pre-process:
+   Pre-process example command:
    ```bash
     python protocol_preprocess.py \
      --dataset_directory=../datasets/retina_snRNA.h5ad \
@@ -22,7 +31,8 @@ This is a protocol for doing fine-tuning on any single-cell dataset `(ex: .h5ad,
      --wandb_project=finetune_retina_snRNA \
      --wandb_name=finetune_example1
    ```
-   > Please keep in mind to change variable's values to your own settings
+   > In **pre-process** step, *--load_model* has to be one of the [pre-trained scGPT models](https://github.com/bowang-lab/scGPT?tab=readme-ov-file#pretrained-scgpt-model-zoo). Please download the
+   approriate pre-trained scGPT model, and it is recommended to use [*scGPT_Human*](https://drive.google.com/drive/folders/1oWh_-ZRdhtoGQ2Fw24HP41FgLoomVo-y) model for any fine-tuning task.
 
 2. **Fine-tune** \
    Start fine-tuning the foundation scGPT model with your custom dataset. Here we are introducing our eye-scGPT that is trained specific on
@@ -31,7 +41,7 @@ This is a protocol for doing fine-tuning on any single-cell dataset `(ex: .h5ad,
    ```bash
     python protocol_finetune.py --help
    ```
-   Run fine-tune:
+   Fine-tune example command:
    ```bash
     python protocol_finetune.py \
      --max_seq_len=5001 \
@@ -40,6 +50,7 @@ This is a protocol for doing fine-tuning on any single-cell dataset `(ex: .h5ad,
      --batch_size=32 \
      --schedule_ratio=0.9
    ```
+   > *--max_seq_len* <= *--n_hvg*
    
 3. **Inference** \
    Evaluation and benchmark will be executed by this part. \
@@ -50,9 +61,28 @@ This is a protocol for doing fine-tuning on any single-cell dataset `(ex: .h5ad,
    Run inference:
    ```bash
     python protocol_inference.py \
-     --load_model=save/dev_eyescGPT_May0520
+     --load_model=save/dev_eyescGPT_May0520 \
      --batch_size=32 \
      --wandb_sync=True \
      --wandb_project=benchmark_BC \
      --wandb_name=sample_bm_0520
    ```
+   
+## Useful Hints
+* How to use custom config file \
+   You can use the custom config file by inserting the path for the variable `--config`. You can see more details in `docs/*-help.txt` \
+   Example: 
+   ```bash
+     python protocol_preprocess.py \
+        --dataset_directory=../datasets/retina_snRNA.h5ad \
+        --config=save/dev_eyescGPT_May0520/custom_config.yml \   <<<<< Custom Config
+        --cell_type_col=celltype \
+        --batch_id_col=sampleid \
+        --load_model=../scGPT_human \
+         --wandb_sync=True \
+        --wandb_project=finetune_retina_snRNA \
+        --wandb_name=finetune_example1
+   ```
+  
+* Notebooks \
+   Notebooks in `/notebooks`
