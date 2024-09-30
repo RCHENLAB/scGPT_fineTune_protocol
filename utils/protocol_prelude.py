@@ -25,10 +25,11 @@ from dataclasses import dataclass, field
 
 import torch
 from torch import nn
+import torch.nn.functional as F
 from torch.utils.data import Dataset, Subset, DataLoader, BatchSampler, RandomSampler, SequentialSampler
 from torchtext.vocab import Vocab
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score, precision_recall_fscore_support, confusion_matrix
+from sklearn.metrics import accuracy_score, precision_recall_fscore_support, confusion_matrix, cohen_kappa_score
 from scipy.sparse import issparse
 
 import scgpt as scg

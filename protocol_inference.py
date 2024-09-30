@@ -4,23 +4,26 @@ from utils import *
 
 @click.command()
 @click.option('--load_model', type=str, required=True, help='directory to pretrained/tuned model directory.')
-@click.option('--max_seq_len', type=int, default=-1, help='Max input sequence length during training. The length should be <= n_hvg+1. Default=same length as loaded model definition')
-@click.option('--config', type=str, default='eval', help='Use config file. If using custom config file, input the path to the file directly.  Options=[pp, train, eval, Any<Path>]')
+@click.option('--max_seq_len', type=int, default=-1,
+              help='Max input sequence length during training. The length should be <= n_hvg+1. Default=same length as loaded model definition')
+@click.option('--config', type=str, default='eval',
+              help='Use config file. If using custom config file, input the path to the file directly.  Options=[pp, train, eval, Any<Path>]')
 @click.option('--freeze_predecoder', type=bool, default=False, help='Freeze pre-decoder. Default=False')
 @click.option('--batch_size', type=int, default=32, help='Batch size during evaluation. Default=32')
 @click.option('--wandb_sync', type=bool, default=False, help='Enable WandB cloud syncing. Default=False')
-@click.option('--wandb_project', type=str, required=True, help='Project name in WandB. Recommend to use different project name other than training project.')
+@click.option('--wandb_project', type=str, required=True,
+              help='Project name in WandB. Recommend to use different project name other than training project.')
 @click.option('--wandb_name', type=str, default='', help='Run name in WandB. Default=EMPTY.')
 def main(
-    load_model,
-    max_seq_len,
-    config,
-    freeze_predecoder,
-    batch_size,
-    wandb_sync,
-    wandb_project,
-    wandb_name,
-    epochs=1
+        load_model,
+        max_seq_len,
+        config,
+        freeze_predecoder,
+        batch_size,
+        wandb_sync,
+        wandb_project,
+        wandb_name,
+        epochs=1
 ):
     # get loaded model configs
     if config == 'pp':
@@ -103,13 +106,12 @@ def main(
 
     # Read input annData
     adata = sc.read_h5ad(config.task_info['input_dataset_directory'], backed='r')
-    num_types = len(np.unique(adata.obs[config.preprocess['_FIXED_CELL_TYPE_COL']]))
     genes = adata.var[config.preprocess['_FIXED_GENE_COL']].tolist()
 
     # Load pre-trained model weights
     logger.info(f'Start loading pre-trained model and weights ...')
     model_dir = Path(model_params['load_model'])
-    model_file = model_dir / "best_model.pt"  # TODO: change the model file name if different
+    model_file = model_dir / "best_model.pt"  # Change the model file name if different
     model_config_file = model_dir / "args.json"
     vocab_file = model_dir / "vocab.json"
     vocab = get_vocab(vocab_file, special_tokens)
@@ -152,6 +154,12 @@ def main(
     logger.info(f'Create new model instance ...')
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     ntokens = len(vocab)
+    with open(config.task_info['id2type_json'], 'r') as f:
+        ref_id2type = json.load(f)
+    unique_ref_cell_types = list(ref_id2type.values())
+    ref_total_types = len(unique_ref_cell_types)
+    labels = adata.obs[_cell_type_id].tolist()
+    test_cell_types = adata.obs[_cell_type_col].unique()
     model = TransformerModel(
         ntokens,
         embsize,
@@ -159,7 +167,7 @@ def main(
         d_hid,
         nlayers,
         nlayers_cls=nlayers_cls,
-        n_cls=num_types if CLS else 1,
+        n_cls=ref_total_types if CLS else 1,
         vocab=vocab,
         dropout=dropout,
         pad_token=pad_token,
@@ -189,8 +197,8 @@ def main(
                 for k, v in pretrained_dict.items()
                 if k in model_dict and v.shape == model_dict[k].shape
             }
-            # for k, v in pretrained_dict.items():
-            #     logger.info(f"Loading params {k} with shape {v.shape}")
+            for k, v in pretrained_dict.items():
+                logger.info(f"Loading params {k} with shape {v.shape}")
             model_dict.update(pretrained_dict)
             model.load_state_dict(model_dict)
 
@@ -219,31 +227,9 @@ def main(
 
     # Define loss, optimizer, scaler
     logger.info(f'Define loss metrics and optimizer ...')
-    ################################################
-    # # Default Cross-entropy
     criterion_cls = nn.CrossEntropyLoss()
-    ################################################
-    # TODO: Weighted loss
-    # # Weighted Cross-entropy
-    # # Normalized Inverse Class Frequency
-    # class_counts = np.bincount(celltype_id_labels)
-    # class_weights = len(celltype_id_labels) / (len(class_counts) * class_counts)
-    # criterion_cls = nn.CrossEntropyLoss(weight=torch.tensor(class_weights, dtype=torch.float, device=device))
-    ################################################
-    optimizer = torch.optim.Adam(
-        model.parameters(), lr=lr, eps=1e-4 if config.model_parameters['amp'] else 1e-8
-    )
-    scheduler = torch.optim.lr_scheduler.StepLR(
-        optimizer, schedule_interval, gamma=config.model_parameters['schedule_ratio']
-    )
-    scaler = torch.cuda.amp.GradScaler(enabled=config.model_parameters['amp'])
 
     logger.info(f'Start evaluating ... ')
-    with open(config.task_info['id2type_json'], 'r') as f:
-        ref_id2type = json.load(f)
-    unique_ref_cell_types = list(ref_id2type.values())
-    labels = adata.obs[_cell_type_id].tolist()
-    test_cell_types = adata.obs[_cell_type_col].unique()
     (
         predictions,
         results,
@@ -264,94 +250,120 @@ def main(
     )
 
     # END TIME POINT
-    END_POINT = time.time()
-    inference_time = round(END_POINT - START_POINT, 2)
+    INFERENCE_END_POINT = time.time()
+    inference_time = round(INFERENCE_END_POINT - START_POINT, 2)
     wandb.log(
         {
             "Evaluation Time": inference_time
         }
     )
-    logger.info(f'*** Evaluation was finished in: {inference_time} seconds ***')
 
-    # generate UMAP
-    logger.info(f'Generating UMAP plots ... ')
-    adata.obs["predictions"] = [ref_id2type[str(p)] for p in predictions]
+    logger.info(f'*** Inference was finished in: {inference_time} seconds ***')
 
-    palette_ = []
-    while len(palette_) < len(unique_ref_cell_types):
-        palette_ += plt.rcParams["axes.prop_cycle"].by_key()["color"]
-    palette_ = {c: palette_[i] for i, c in enumerate(unique_ref_cell_types)}
+    adata.obs['predictions'] = [ref_id2type[str(pred)] for pred in predictions]
+    subset_obs = pd.DataFrame([])
+    subset_obs['index'] = adata.obs.index
+    subset_obs = adata.obs[['predictions']].copy()
 
-    sc.tl.pca(adata)
-    sc.pp.neighbors(adata, n_neighbors=10, n_pcs=30)
-    sc.tl.umap(adata)
+    if labels is not None:
+        logger.info(f'Start evaluation process ...')
+        subset_obs['ground_truth'] = adata.obs[_cell_type_col]
 
-    with plt.rc_context({"figure.dpi": 600}):
-        sc.pl.umap(
-            adata,
-            color=["celltype", "predictions"],
-            palette=palette_,
-            show=False,
-            legend_fontsize=6,
-            wspace=.5
+        # generate UMAP
+        logger.info(f'Generating UMAP plots ... ')
+        adata = adata.to_memory()
+        adata.X = adata.X.toarray()
+        adata.obs["predictions"] = [ref_id2type[str(p)] for p in predictions]
+        adata.obs['cleaned_predictions'] = adata.obs['predictions'].apply(
+            lambda x: x if x in unique_ref_cell_types else 'others'
         )
-        plt.savefig(save_dir / "results.png", dpi=600, bbox_inches="tight")
 
-    save_dict = {
-        "predictions": predictions,
-        "labels": labels,
-        "results": results,
-        "id_maps": ref_id2type
-    }
+        palette_ = []
+        while len(palette_) < len(unique_ref_cell_types):
+            palette_ += plt.rcParams["axes.prop_cycle"].by_key()["color"]
+        palette_ = {c: palette_[i] for i, c in enumerate(unique_ref_cell_types)}
 
-    with open(save_dir / "results.pkl", "wb") as f:
-        pickle.dump(save_dict, f)
+        sc.tl.pca(adata)
+        sc.pp.neighbors(adata, n_neighbors=10, n_pcs=30)
+        sc.tl.umap(adata)
 
-    results["test/cell_umap"] = wandb.Image(
-        str(save_dir / "results.png"),
-        caption=f"predictions macro f1 {results['test/macro_f1']:.3f}",
-    )
-    wandb.log(results)
+        with plt.rc_context({"figure.dpi": 600}):
+            sc.pl.umap(
+                adata,
+                color=["celltype", "cleaned_predictions"],
+                palette=palette_,
+                show=False,
+                legend_fontsize=6,
+                wspace=.5
+            )
+            fig = plt.gcf()
+            axes = fig.get_axes()
+            if len(axes) == 2:
+                axes[0].set_title("Cell Type")
+                axes[1].set_title("Predictions")
+            plt.savefig(save_dir / "evaluation_umap.png", dpi=600, bbox_inches="tight")
 
-    # generate confusion matrix
-    logger.info(f'Generating confusion matrix ... ')
+        save_dict = {
+            "predictions": predictions,
+            "labels": labels,
+            "results": results,
+            "id_maps": ref_id2type
+        }
 
-    cm = confusion_matrix(adata.obs[_cell_type_col], [ref_id2type[str(p)] for p in predictions], labels=test_cell_types)
-    cm_normalized = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
+        with open(save_dir / "results.pkl", "wb") as f:
+            pickle.dump(save_dict, f)
 
-    prediction_result_dict = {
-        "precision_per_label": precision_dict,
-        "error": wrong_predictions
-    }
+        results["test/cell_umap"] = wandb.Image(
+            str(save_dir / "evaluation_umap.png"),
+            caption=f"predictions macro f1 {results['test/macro_f1']:.3f}",
+        )
+        wandb.log(results)
 
-    with open(save_dir / "evaluation_results.json", "w") as json_file:
-        json.dump(prediction_result_dict, json_file, indent=4)
-        print(json.dumps(prediction_result_dict, indent=4))
+        # generate confusion matrix
+        logger.info(f'Generating confusion matrix ... ')
 
-    print("Evaluation results saved to 'evaluation_results.json'")
+        cm = confusion_matrix(adata.obs[_cell_type_col], [ref_id2type[str(p)] for p in predictions],
+                              labels=test_cell_types)
+        cm_normalized = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
 
-    plt.figure(figsize=(20, 20))
-    sns.heatmap(cm_normalized, annot=True, cmap='plasma', xticklabels=test_cell_types, yticklabels=test_cell_types)
-    plt.xlabel('Predicted Label')
-    plt.ylabel('True Label')
-    plt.title('Confusion Matrix')
-    plt.savefig(save_dir / "confusion_matrix.png", dpi=600)
+        prediction_result_dict = {
+            "precision_per_label": precision_dict,
+            "error": wrong_predictions
+        }
 
-    results["test/confusion_matrix"] = wandb.Image(
-        str(save_dir / "confusion_matrix.png"),
-        caption=f"confusion matrix",
-    )
+        with open(save_dir / "evaluation_results.json", "w") as json_file:
+            json.dump(prediction_result_dict, json_file, indent=4)
+            # print(json.dumps(prediction_result_dict, indent=4))
+
+        print("Evaluation results saved to 'evaluation_results.json'")
+
+        plt.figure(figsize=(20, 20))
+        sns.heatmap(cm_normalized, annot=True, cmap='plasma', xticklabels=test_cell_types, yticklabels=test_cell_types)
+        plt.xlabel('Predicted Label')
+        plt.ylabel('True Label')
+        plt.title('Confusion Matrix')
+        plt.savefig(save_dir / "confusion_matrix.png", dpi=600)
+
+        results["test/confusion_matrix"] = wandb.Image(
+            str(save_dir / "confusion_matrix.png"),
+            caption=f"confusion matrix",
+        )
+
+        EVAL_END_TIME = time.time()
+        eval_time = round(EVAL_END_TIME - INFERENCE_END_POINT, 2)
+        logger.info(f'*** Evaluation was finished in: {eval_time} seconds ***')
+
+    subset_obs.to_csv(save_dir / 'predictions.csv', index=False)
 
     run.finish()
     wandb.finish()
     gc.collect()
-    logger.info(f'Evaluation is saved to directory ==> {save_dir}')
-    logger.info(f'Benchmarking was completed ! Well done =) ')
+    logger.info(f'Results are saved to directory ==> {save_dir}')
+    logger.info(f'Inference was completed ! Well done =) ')
 
 
-#%% Run
+# %% Run
 if __name__ == '__main__':
     main()
 
-
-#%% END
+# %% END

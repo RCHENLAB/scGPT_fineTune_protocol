@@ -6,7 +6,7 @@ from .protocol_prelude import *
 def train(
     model: nn.Module,
     loader: DataLoader,
-    pad_vocab: int,  # =
+    pad_vocab: int,
     criterion_cls,
     config,
     scheduler,
@@ -161,6 +161,9 @@ def evaluate(
             preds = output_values.argmax(1).cpu().numpy()
             predictions.append(preds)
 
+            # probs = F.softmax(output_values, dim=-1).cpu().numpy()
+            # probabilities.append(probs)
+
     wandb.log(
         {
             "valid/mse": total_loss / total_num,
@@ -175,12 +178,11 @@ def evaluate(
     return total_loss / total_num, total_error / total_num
 
 
-#%% Test func
 def test(
     model: nn.Module,
     loader: DataLoader,
     adata: AnnData,
-    true_cell_type_ids: List[int],
+    true_cell_type_ids: List[int] | None,
     ref_id2type: dict,
     pad_vocab,
     criterion_cls,
@@ -200,37 +202,47 @@ def test(
         device=device,
         return_raw=True
     )
-    unique_true_cell_type_ids = [str(i) for i in set(true_cell_type_ids)]
-    accuracy = accuracy_score(true_cell_type_ids, predictions)
-    precision_per_class, recall_per_class, f1_per_class, _ = precision_recall_fscore_support(true_cell_type_ids, predictions, labels=unique_true_cell_type_ids)
-    macro_precision = precision_per_class.mean()
-    macro_recall = recall_per_class.mean()
-    macro_f1 = f1_per_class.mean()
+    results = None
+    precision_dict = None
+    wrong_predictions = None
+    if true_cell_type_ids is not None:
+        unique_true_cell_type_ids = [str(i) for i in set(true_cell_type_ids)]
+        accuracy = accuracy_score(true_cell_type_ids, predictions)
+        precision_per_class, recall_per_class, f1_per_class, support_per_class = precision_recall_fscore_support(
+            true_cell_type_ids, predictions, zero_division=0
+        )
+        total_support = np.sum(support_per_class)
+        weighted_precision = np.sum(precision_per_class * support_per_class) / total_support
+        weighted_recall = np.sum(recall_per_class * support_per_class) / total_support
+        weighted_f1 = np.sum(f1_per_class * support_per_class) / total_support
+        kappa_coefficient = cohen_kappa_score(true_cell_type_ids, predictions)
 
-    precision_dict = {}
-    for label, precision in zip(unique_true_cell_type_ids, precision_per_class):
-        precision_dict[ref_id2type[label]] = precision
+        precision_dict = {}
+        for label, precision in zip(unique_true_cell_type_ids, precision_per_class):
+            precision_dict[ref_id2type[label]] = precision
 
-    wrong_predictions = {}
-    for gt, pred, idx in zip(true_cell_type_ids, predictions, range(len(predictions))):
-        if gt != pred:
-            wrong_predictions[adata.obs.index[idx]] = [ref_id2type[str(gt)], ref_id2type[str(pred)]]
+        wrong_predictions = {}
+        for gt, pred, idx in zip(true_cell_type_ids, predictions, range(len(predictions))):
+            if gt != pred:
+                wrong_predictions[adata.obs.index[idx]] = [ref_id2type[str(gt)], ref_id2type[str(pred)]]
 
-    print('*' * 20)
-    logger.info(
-        f"Accuracy: {accuracy:.3f}\n"
-        f"Precision: {macro_precision:.3f}\n"
-        f"Recall: {macro_recall:.3f}\n"
-        f"Macro F1: {macro_f1:.3f}"
-    )
-    print('*' * 20)
+        print('*' * 20)
+        logger.info(
+            f"Accuracy: {accuracy:.3f}\n"
+            f"Precision: {weighted_precision:.3f}\n"
+            f"Recall: {weighted_recall:.3f}\n"
+            f"Macro F1: {weighted_f1:.3f}\n"
+            f"Kappa Coefficient: {kappa_coefficient:.3f}"
+        )
+        print('*' * 20)
 
-    results = {
-        "test/accuracy": accuracy,
-        "test/precision": macro_precision,
-        "test/recall": macro_recall,
-        "test/macro_f1": macro_f1,
-    }
+        results = {
+            "test/accuracy": accuracy,
+            "test/precision": weighted_precision,
+            "test/recall": weighted_recall,
+            "test/macro_f1": weighted_f1,
+            "test/kappa_coefficient": kappa_coefficient
+        }
 
     return predictions, results, precision_dict, wrong_predictions
 

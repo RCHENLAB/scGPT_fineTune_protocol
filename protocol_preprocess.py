@@ -1,7 +1,8 @@
-#%%
+# %%
 from utils import *
 
-#%% Main Script for preprocessor
+
+# %% Main Script for preprocessor
 @click.command()
 @click.option('--dataset_directory', type=str, required=True, help='Directory to the dataset')
 @click.option('--config', type=str, default='pp', help='Use config file. Options=[pp, train, eval, Any<Path>]')
@@ -10,36 +11,48 @@ from utils import *
 @click.option('--filter_gene_by_counts', type=int, default=0, help='Filter by gene counts. Default=0')
 @click.option('--filter_cell_by_counts', type=int, default=0, help='Filter by cell counts. Default=0')
 @click.option('--n_hvg', type=int, default=5000, help='Number for highly variable genes. Default=5000')
-@click.option('--hvg_flavor', type=str, default='seurat_v3', help='Data processor. Options: seurat_v3, cell_ranger. Default=seurat_v3')
-@click.option('--cell_type_col', type=str, required=True, help='Column name for cell type.')
-@click.option('--batch_id_col', type=str, required=True, help='Column name for batch IDs. (ex: donor, etc.)')
-@click.option('--do_train', type=bool, default=True, help='Pre-process for fine-tuning task. If false, then evaluation. Default=True.')
-@click.option('--load_model', type=str, default='pretrained_models/scGPT_human', help='directory to pretrained/tuned model directory. Default=pretrained_models/scGPT_human')
+@click.option('--hvg_flavor', type=str, default='seurat_v3',
+              help='Data processor. Options: seurat_v3, cell_ranger. Default=seurat_v3')
+@click.option('--cell_type_col', type=str, help='Column name for cell type.')
+@click.option('--batch_id_col', type=str, help='Column name for batch IDs. (ex: donor, etc.)')
+@click.option('--do_train', type=bool, default=True,
+              help='Pre-process for fine-tuning task. If false, then evaluation. Default=True.')
+@click.option('--load_model', type=str, default='pretrained_models/scGPT_human',
+              help='directory to pretrained/tuned model directory. Default=pretrained_models/scGPT_human')
 @click.option('--wandb_sync', type=bool, default=False, help='Enable WandB cloud syncing. Default=False')
 @click.option('--wandb_project', type=str, required=True, help='Project name in WandB.')
 @click.option('--wandb_name', type=str, default='', help='Run name in WandB. Default=EMPTY.')
 def main(
-    dataset_directory,
-    config,
-    dataset_name,
-    do_norm,
-    filter_gene_by_counts,
-    filter_cell_by_counts,
-    n_hvg,
-    hvg_flavor,
-    cell_type_col,
-    batch_id_col,
-    do_train,
-    load_model,
-    wandb_sync,
-    wandb_project,
-    wandb_name
+        dataset_directory,
+        config,
+        dataset_name,
+        do_norm,
+        filter_gene_by_counts,
+        filter_cell_by_counts,
+        n_hvg,
+        hvg_flavor,
+        cell_type_col,
+        batch_id_col,
+        do_train,
+        load_model,
+        wandb_sync,
+        wandb_project,
+        wandb_name
 ):
-    # Load config
-    if config == 'pp':
+    # get loaded model configs
+    if config == 'pp' and len(load_model) > 0:
+        print(f'++++ Inheriting config from the loaded model ...')
+        hyperparameter_defaults = load_config(preprocess=True, load_model_dir=load_model)
+    elif config == 'pp':
+        print(f'++++ Creating new config ... ')
         hyperparameter_defaults = load_config(preprocess=True)
+    elif config == 'train':
+        hyperparameter_defaults = load_config(train=True)
+    elif config == 'eval':
+        hyperparameter_defaults = load_config(eval=True, load_model_dir=load_model)
     else:
-        raise Exception("config must be <pp> in preprocess")
+        print(f'++++ Loading from existed config ... ')
+        hyperparameter_defaults = load_config(custom_config=config)
 
     task_info = hyperparameter_defaults['task_info']
     preprocess_config = hyperparameter_defaults['preprocess']
@@ -54,8 +67,12 @@ def main(
     preprocess_config['filter_cell_by_counts'] = filter_cell_by_counts
     preprocess_config['n_hvg'] = n_hvg
     preprocess_config['hvg_flavor'] = hvg_flavor
-    preprocess_config['dataset_cell_type_col'] = cell_type_col
-    preprocess_config['dataset_batch_id_col'] = batch_id_col
+    if cell_type_col is None:
+        preprocess_config['dataset_cell_type_col'] = ''
+        preprocess_config['dataset_batch_id_col'] = ''
+    else:
+        preprocess_config['dataset_cell_type_col'] = cell_type_col
+        preprocess_config['dataset_batch_id_col'] = batch_id_col
     model_params['do_train'] = do_train
     model_params['load_model'] = load_model
     wandb_config['mode'] = 'online' if wandb_sync else 'offline'
@@ -74,21 +91,39 @@ def main(
     file_dir = task_info['raw_dataset_directory']
     logger.info(f'Start reading data from {file_dir}')
     adata = sc.read_h5ad(file_dir)
-    _cell_type_col = preprocess_config['_FIXED_CELL_TYPE_COL']
-    _cell_type_id = preprocess_config['_FIXED_CELL_TYPE_ID_COL']
-    _gene_name = preprocess_config['_FIXED_GENE_COL']
-    _batch_id = preprocess_config['_FIXED_BATCH_ID_COL']
+    _gene_name = preprocess_config['_FIXED_GENE_COL']  # Gene column name must be <gene_name>
     input_data_cell_type_col = preprocess_config['dataset_cell_type_col']
     input_data_batch_id_col = preprocess_config['dataset_batch_id_col']
-    adata.obs[_cell_type_col] = adata.obs[input_data_cell_type_col].astype("category")
-    adata.obs[_batch_id] = adata.obs[input_data_batch_id_col].astype("category").cat.codes.values
-    celltype_id_labels = adata.obs[_cell_type_col].astype("category").cat.codes.values
-    adata.obs[_cell_type_id] = celltype_id_labels
+
+    if input_data_cell_type_col is None or input_data_batch_id_col is None:
+        logger.info(f'No columns for cell type or batch id')
+        logger.info(f'Preprocess dataset as testing dataset for inference task ...')
+        _cell_type_col = _cell_type_id = _batch_id = None
+    else:
+        logger.info(f'Preprocess dataset as testing dataset ...')
+        _cell_type_col = preprocess_config['_FIXED_CELL_TYPE_COL']
+        _cell_type_id = preprocess_config['_FIXED_CELL_TYPE_ID_COL']
+        _batch_id = preprocess_config['_FIXED_BATCH_ID_COL']
+
+        adata.obs[_cell_type_col] = adata.obs[input_data_cell_type_col].astype("category")
+        adata.obs[_batch_id] = adata.obs[input_data_batch_id_col].astype("category").cat.codes.values
+
+        ########
+        # if id2type is offered then we map the cell type to the reference dataset ID
+        # otherwise, use the sequential numbers to create a new id2type mapping
+        if len(task_info['id2type_json']) > 0:
+            with open(task_info['id2type_json'], 'r') as f:
+                id2type = json.load(f)
+            type2id = {cell_type_name: int(cell_type_id) for cell_type_id, cell_type_name in id2type.items()}
+            adata.obs[_cell_type_id] = adata.obs[_cell_type_col].map(type2id)
+        else:
+            adata.obs[_cell_type_id] = adata.obs[_cell_type_col].astype("category").cat.codes.values
+            id2type = dict(enumerate(adata.obs[_cell_type_col].astype("category").cat.categories))
+            task_info['id2type_json'] = save_json(id2type, save_dir)
+
     adata.var.index = adata.var.index.astype(str)
     adata.var.index.name = None
     adata.var[_gene_name] = adata.var.index.tolist()
-    id2type = dict(enumerate(adata.obs[_cell_type_col].astype("category").cat.categories))
-    task_info['id2type_json'] = save_json(id2type, save_dir)
 
     # Load and save pre-trained model settings
     load_model = hyperparameter_defaults['model_parameters']['load_model']
@@ -156,9 +191,8 @@ def main(
     gc.collect()
 
 
-#%% Run
+# %% Run
 if __name__ == '__main__':
     main()
 
-
-#%% END
+# %% END

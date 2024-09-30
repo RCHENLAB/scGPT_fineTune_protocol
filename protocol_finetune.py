@@ -62,6 +62,9 @@ def main(
     model_params = hyperparameter_defaults['model_parameters']
     task_configs = hyperparameter_defaults['task_configs']
 
+    if preprocess_config['dataset_cell_type_col'] == '':
+        raise ValueError('The cell type column is not specified in preprocess. The task should be directed to inference.')
+
     # update configs
     model_params['load_model'] = load_model if len(load_model) > 0 else model_params['load_model']
     model_params['epochs'] = epochs
@@ -101,7 +104,6 @@ def main(
         yaml.dump(hyperparameter_defaults, out_configs, sort_keys=False)
     logger.info(f"Current training script and config file is saved to -> {save_dir}")
     logger.info(f"Working directory is initialized successfully ...")
-    print()
 
     # CONSTANTS
     pad_token = config.task_configs['pad_token']

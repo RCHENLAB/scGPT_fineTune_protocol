@@ -1,7 +1,7 @@
 /save
 /wandb
 /.idea
-/pretrained_models/*
+/pretrained_model/*
 /datasets/*
 __pycahce__
 */__pycache__

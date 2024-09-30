@@ -11,8 +11,8 @@ Options:
   --filter_cell_by_counts INTEGER   Filter by cell counts. Default=0
   --n_hvg INTEGER                   Number for highly variable genes. Default=5000
   --hvg_flavor TEXT                 Data processor. Options: seurat_v3, cell_ranger. Default=seurat_v3
-  --cell_type_col TEXT              Column name for cell type.  [required]
-  --batch_id_col TEXT               Column name for batch IDs. (ex: donor, etc.) [required]
+  --cell_type_col TEXT              Column name for cell type.
+  --batch_id_col TEXT               Column name for batch IDs. (ex: donor, etc.)
   --do_train BOOLEAN                Pre-process for fine-tuning task. If false, then evaluation. Default=True.
   --load_model TEXT                 directory to pretrained/tuned model directory. Default=pretrained_models/scGPT_human
   --wandb_sync BOOLEAN              Enable WandB cloud syncing. Default=False

@@ -7,14 +7,13 @@ class ProtocolWandB:
     def __init__(self, configs):
         self.configs = configs
         self.wandb_configs = configs['wandb_configs']
-        os.environ["WANDB_MODE"] = self.wandb_configs['mode']
 
     def create_wandb_project(self):
         return wandb.init(
             config=self.configs,
             project=self.wandb_configs['project'],
             reinit=self.wandb_configs['reinit'],
-            settings=wandb.Settings(start_method="fork"),
+            settings=wandb.Settings(start_method="fork", mode=self.wandb_configs['mode']),
             name=self.wandb_configs['name']
         )
 
@@ -33,8 +32,12 @@ def load_config(preprocess: bool = None, train: bool = None, eval: bool = None, 
     elif preprocess == train and train == eval and preprocess is not None:
         raise Exception('Only can load either Pre-process config file or Training config file.')
     elif preprocess:
-        with open('utils/basic_train_args.yml', 'r') as in_configs:
-            hyperparameter_defaults = yaml.safe_load(in_configs)
+        if len(load_model_dir) > 0:
+            with open(f'{load_model_dir}/dev_train_args.yml', 'r') as in_configs:
+                hyperparameter_defaults = yaml.safe_load(in_configs)
+        else:
+            with open('utils/basic_train_args.yml', 'r') as in_configs:
+                hyperparameter_defaults = yaml.safe_load(in_configs)
     elif train:
         with open('train_args.yml', 'r') as in_configs:
             hyperparameter_defaults = yaml.safe_load(in_configs)
@@ -46,7 +49,12 @@ def load_config(preprocess: bool = None, train: bool = None, eval: bool = None, 
             hyperparameter_defaults = yaml.safe_load(in_configs)
         update_model_params = {
             'lr': trained_model_defaults['model_parameters']['lr'],
-            'dropout': trained_model_defaults['model_parameters']['dropout']
+            'dropout': trained_model_defaults['model_parameters']['dropout'],
+            'nlayers': trained_model_defaults['model_parameters']['nlayers'],
+            'nheads': trained_model_defaults['model_parameters']['nheads'],
+            'embsize': trained_model_defaults['model_parameters']['embsize'],
+            'd_hid': trained_model_defaults['model_parameters']['d_hid'],
+            'nlayers_cls': trained_model_defaults['model_parameters']['nlayers_cls'],
         }
         hyperparameter_defaults['model_parameters'].update(update_model_params)
         hyperparameter_defaults['task_info']['id2type_json'] = trained_model_defaults['task_info']['id2type_json']

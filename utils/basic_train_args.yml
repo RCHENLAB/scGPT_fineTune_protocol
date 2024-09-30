@@ -10,7 +10,7 @@ preprocess:
   do_norm: True  # BOOL, run normalization and log1p, default=True
   filter_gene_by_counts: 0  # INT, num for gene counts filtering, default=0
   filter_cell_by_counts: 0  # INT, num for cell counts filtering, default=0
-  normalize_total: 1e4  # INT, default=1e4
+  normalize_total: 10000  # INT, default=1e4
   n_hvg: 5000  # number for hvg extraction, default=5000
   hvg_flavor: "seurat_v3"  # String, options in ['seurat_v3', 'cell_ranger'], default='seurat_v3'
   dataset_cell_type_col: 'celltype'  # String, the cell type column name in fine-tuning dataset
@@ -34,14 +34,14 @@ model_parameters:
   freeze_predecoder: false  # freeze pre-decoder in transformer model
   train_test_split_ratio: 0.1  # 10% data as test data
   batch_size: 64
-  lr: 1e-4  # learning rate
+  lr: 0.0001  # learning rate
   dropout: 0.2
   schedule_ratio: 0.9  # learning rate linear decay ratio
   schedule_interval: 1  # scheduler updates every N epoch
   log_interval: 100  # logging every 100 batches
   save_eval_interval: 1  # epoch to save the best model
   nlayers: 12  # nn.TransformerEncoderLayer, overwrite if <fine-tune>
-  nheads: 4  # heads in nn.MultiheadAttention, overwrite if <fine-tune>
+  nheads: 8  # heads in nn.MultiheadAttention, overwrite if <fine-tune>
   embsize: 512  # embedding dimension, overwrite if <fine-tune>
   d_hid: 512  # dimension of the feedforward network in TransformerEncoder, overwrite if <fine-tune>
   nlayers_cls: 3  # number of dense layers before the last softmax layer, default=3
