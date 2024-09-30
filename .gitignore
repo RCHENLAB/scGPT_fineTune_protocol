@@ -1,11 +1,10 @@
 /save
 /wandb
 /.idea
-/pretrained_model/*
+/pretrained_models/*
 /datasets/*
 __pycahce__
 */__pycache__
 .DS_Store
-allType_cls2.py
-test_run.py
+*/.DS_Store
 train_args.yml
