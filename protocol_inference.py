@@ -158,8 +158,6 @@ def main(
         ref_id2type = json.load(f)
     unique_ref_cell_types = list(ref_id2type.values())
     ref_total_types = len(unique_ref_cell_types)
-    labels = adata.obs[_cell_type_id].tolist()
-    test_cell_types = adata.obs[_cell_type_col].unique()
     model = TransformerModel(
         ntokens,
         embsize,
@@ -229,7 +227,8 @@ def main(
     logger.info(f'Define loss metrics and optimizer ...')
     criterion_cls = nn.CrossEntropyLoss()
 
-    logger.info(f'Start evaluating ... ')
+    logger.info(f'Start annotating ... ')
+    labels = adata.obs[_cell_type_id].tolist() if adata.obs.get(_cell_type_id, None) is None else None
     (
         predictions,
         results,
@@ -261,9 +260,8 @@ def main(
     logger.info(f'*** Inference was finished in: {inference_time} seconds ***')
 
     adata.obs['predictions'] = [ref_id2type[str(pred)] for pred in predictions]
-    subset_obs = pd.DataFrame([])
-    subset_obs['index'] = adata.obs.index
     subset_obs = adata.obs[['predictions']].copy()
+    subset_obs = subset_obs.reset_index()
 
     if labels is not None:
         logger.info(f'Start evaluation process ...')
@@ -274,8 +272,9 @@ def main(
         adata = adata.to_memory()
         adata.X = adata.X.toarray()
         adata.obs["predictions"] = [ref_id2type[str(p)] for p in predictions]
+        unique_true_cell_types = adata.obs[_cell_type_col].unique()
         adata.obs['cleaned_predictions'] = adata.obs['predictions'].apply(
-            lambda x: x if x in unique_ref_cell_types else 'others'
+            lambda x: x if x in unique_true_cell_types else 'others'
         )
 
         palette_ = []
@@ -322,8 +321,7 @@ def main(
         # generate confusion matrix
         logger.info(f'Generating confusion matrix ... ')
 
-        cm = confusion_matrix(adata.obs[_cell_type_col], [ref_id2type[str(p)] for p in predictions],
-                              labels=test_cell_types)
+        cm = confusion_matrix(adata.obs[_cell_type_col], [ref_id2type[str(p)] for p in predictions], labels=unique_true_cell_types)
         cm_normalized = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
 
         prediction_result_dict = {
@@ -338,7 +336,7 @@ def main(
         print("Evaluation results saved to 'evaluation_results.json'")
 
         plt.figure(figsize=(20, 20))
-        sns.heatmap(cm_normalized, annot=True, cmap='plasma', xticklabels=test_cell_types, yticklabels=test_cell_types)
+        sns.heatmap(cm_normalized, annot=True, cmap='plasma', xticklabels=unique_true_cell_types, yticklabels=unique_true_cell_types)
         plt.xlabel('Predicted Label')
         plt.ylabel('True Label')
         plt.title('Confusion Matrix')
@@ -354,12 +352,13 @@ def main(
         logger.info(f'*** Evaluation was finished in: {eval_time} seconds ***')
 
     subset_obs.to_csv(save_dir / 'predictions.csv', index=False)
-
+    print('*' * 20)
+    logger.info(f'Results are saved to directory ==> {save_dir}')
+    logger.info(f'Inference was completed ! Well done =) ')
+    print('*' * 20)
     run.finish()
     wandb.finish()
     gc.collect()
-    logger.info(f'Results are saved to directory ==> {save_dir}')
-    logger.info(f'Inference was completed ! Well done =) ')
 
 
 # %% Run
