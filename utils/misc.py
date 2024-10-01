@@ -1,4 +1,6 @@
 #%%
+import os
+
 from .protocol_prelude import *
 
 
@@ -32,7 +34,7 @@ def load_config(preprocess: bool = None, train: bool = None, eval: bool = None, 
     elif preprocess == train and train == eval and preprocess is not None:
         raise Exception('Only can load either Pre-process config file or Training config file.')
     elif preprocess:
-        if len(load_model_dir) > 0:
+        if len(load_model_dir) > 0 and 'dev_train_args.yml' in os.listdir(load_model_dir):
             with open(f'{load_model_dir}/dev_train_args.yml', 'r') as in_configs:
                 hyperparameter_defaults = yaml.safe_load(in_configs)
         else:

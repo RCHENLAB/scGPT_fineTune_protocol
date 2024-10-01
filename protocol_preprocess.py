@@ -128,7 +128,6 @@ def main(
     # Load and save pre-trained model settings
     load_model = hyperparameter_defaults['model_parameters']['load_model']
     model_dir = Path(load_model)
-    model_config_file = model_dir / "args.json"
     vocab_file = model_dir / "vocab.json"
     shutil.copy(vocab_file, save_dir / "vocab.json")
     pad_token = hyperparameter_defaults['task_configs']['pad_token']
@@ -147,21 +146,26 @@ def main(
         f"in vocabulary of size {len(vocab)}."
     )
     adata = adata[:, adata.var["id_in_vocab"] >= 0]
-    with open(model_config_file, "r") as f:
-        model_configs = json.load(f)
-    (
-        model_params['embsize'],
-        model_params['nheads'],
-        model_params['d_hid'],
-        model_params['nlayers'],
-        model_params['nlayers_cls'],
-    ) = (
-        model_configs["embsize"],
-        model_configs["nheads"],
-        model_configs["d_hid"],
-        model_configs["nlayers"],
-        model_configs["n_layers_cls"],
-    )
+
+    if config == 'pp' and len(load_model) > 0:
+        pass
+    else:
+        model_config_file = model_dir / "args.json"
+        with open(model_config_file, "r") as f:
+            model_configs = json.load(f)
+        (
+            model_params['embsize'],
+            model_params['nheads'],
+            model_params['d_hid'],
+            model_params['nlayers'],
+            model_params['nlayers_cls'],
+        ) = (
+            model_configs["embsize"],
+            model_configs["nheads"],
+            model_configs["d_hid"],
+            model_configs["nlayers"],
+            model_configs["n_layers_cls"],
+        )
 
     # single-cell preprocessing
     preprocessor = Preprocessor(

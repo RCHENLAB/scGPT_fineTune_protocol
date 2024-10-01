@@ -68,7 +68,6 @@ def main(
     scg.utils.add_file_handler(logger, save_dir / "run.log")
     logger.info(f"Current evaluation progress is saved to -> {save_dir}")
     logger.info(f"Working directory is initialized successfully ...")
-    print()
 
     # CONSTANTS
     pad_token = config.task_configs['pad_token']
@@ -228,7 +227,7 @@ def main(
     criterion_cls = nn.CrossEntropyLoss()
 
     logger.info(f'Start annotating ... ')
-    labels = adata.obs[_cell_type_id].tolist() if adata.obs.get(_cell_type_id, None) is None else None
+    labels = adata.obs[_cell_type_id].tolist() if adata.obs.get(_cell_type_id, None) is not None else None
     (
         predictions,
         results,
@@ -258,10 +257,8 @@ def main(
     )
 
     logger.info(f'*** Inference was finished in: {inference_time} seconds ***')
-
     adata.obs['predictions'] = [ref_id2type[str(pred)] for pred in predictions]
     subset_obs = adata.obs[['predictions']].copy()
-    subset_obs = subset_obs.reset_index()
 
     if labels is not None:
         logger.info(f'Start evaluation process ...')
@@ -269,38 +266,40 @@ def main(
 
         # generate UMAP
         logger.info(f'Generating UMAP plots ... ')
-        adata = adata.to_memory()
-        adata.X = adata.X.toarray()
         adata.obs["predictions"] = [ref_id2type[str(p)] for p in predictions]
-        unique_true_cell_types = adata.obs[_cell_type_col].unique()
+        unique_true_cell_types = adata.obs[_cell_type_col].unique().tolist()
         adata.obs['cleaned_predictions'] = adata.obs['predictions'].apply(
             lambda x: x if x in unique_true_cell_types else 'others'
         )
 
         palette_ = []
-        while len(palette_) < len(unique_ref_cell_types):
+        cell_types_list = unique_true_cell_types.copy()
+        cell_types_list.append('others')
+        while len(palette_) < len(cell_types_list):
             palette_ += plt.rcParams["axes.prop_cycle"].by_key()["color"]
-        palette_ = {c: palette_[i] for i, c in enumerate(unique_ref_cell_types)}
+        palette_ = {c: palette_[i] for i, c in enumerate(cell_types_list)}
 
+        adata = adata.to_memory()
+        adata.X = adata.X.toarray()
         sc.tl.pca(adata)
         sc.pp.neighbors(adata, n_neighbors=10, n_pcs=30)
         sc.tl.umap(adata)
 
-        with plt.rc_context({"figure.dpi": 600}):
+        with plt.rc_context({"figure.dpi": 500}):
             sc.pl.umap(
                 adata,
                 color=["celltype", "cleaned_predictions"],
                 palette=palette_,
                 show=False,
                 legend_fontsize=6,
-                wspace=.5
+                wspace=.6
             )
             fig = plt.gcf()
             axes = fig.get_axes()
             if len(axes) == 2:
                 axes[0].set_title("Cell Type")
                 axes[1].set_title("Predictions")
-            plt.savefig(save_dir / "evaluation_umap.png", dpi=600, bbox_inches="tight")
+            plt.savefig(save_dir / "evaluation_umap.png", dpi=500, bbox_inches="tight")
 
         save_dict = {
             "predictions": predictions,
@@ -351,11 +350,12 @@ def main(
         eval_time = round(EVAL_END_TIME - INFERENCE_END_POINT, 2)
         logger.info(f'*** Evaluation was finished in: {eval_time} seconds ***')
 
+    subset_obs = subset_obs.reset_index()
     subset_obs.to_csv(save_dir / 'predictions.csv', index=False)
-    print('*' * 20)
+    print('>' * 30)
     logger.info(f'Results are saved to directory ==> {save_dir}')
     logger.info(f'Inference was completed ! Well done =) ')
-    print('*' * 20)
+    print('<' * 30)
     run.finish()
     wandb.finish()
     gc.collect()

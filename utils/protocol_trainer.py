@@ -226,15 +226,16 @@ def test(
             if gt != pred:
                 wrong_predictions[adata.obs.index[idx]] = [ref_id2type[str(gt)], ref_id2type[str(pred)]]
 
-        print('*' * 20)
-        logger.info(
+        print('=' * 30)
+        print(f'<Evaluation Statistics>')
+        print(
             f"Accuracy: {accuracy:.3f}\n"
             f"Precision: {weighted_precision:.3f}\n"
             f"Recall: {weighted_recall:.3f}\n"
             f"Macro F1: {weighted_f1:.3f}\n"
             f"Kappa Coefficient: {kappa_coefficient:.3f}"
         )
-        print('*' * 20)
+        print('=' * 30)
 
         results = {
             "test/accuracy": accuracy,
