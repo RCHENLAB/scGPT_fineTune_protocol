@@ -152,6 +152,10 @@ def main(
 
     # Read input annData
     adata = sc.read_h5ad(config.task_info['input_dataset_directory'], backed='r')
+    if preprocess_config.get('_FIXED_CELL_TYPE_COL', None) is None:
+        logger.warning(f'The input dataset is prepared for the inference task!')
+        logger.warning(f'Safe exiting the finetune profess ...')
+        exit(-1)
     num_types = len(np.unique(adata.obs[preprocess_config['_FIXED_CELL_TYPE_COL']]))
     genes = adata.var[preprocess_config['_FIXED_GENE_COL']].tolist()
 

@@ -252,7 +252,7 @@ def main(
     inference_time = round(INFERENCE_END_POINT - START_POINT, 2)
     wandb.log(
         {
-            "Evaluation Time": inference_time
+            "Inference Time": inference_time
         }
     )
 

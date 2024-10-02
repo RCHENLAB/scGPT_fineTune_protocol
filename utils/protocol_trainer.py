@@ -132,6 +132,7 @@ def evaluate(
     total_error = 0.0
     total_num = 0
     predictions = []
+    is_inference_task = True
     with torch.no_grad():
         for batch_data in loader:
             input_gene_ids = batch_data["input_gene_ids"].to(device)
@@ -152,25 +153,29 @@ def evaluate(
                     do_sample=config.task_configs['do_sample_in_train']
                 )
                 output_values = output_dict["cls_output"]
-                loss = criterion_cls(output_values, celltype_labels)
 
-            total_loss += loss.item() * len(input_gene_ids)
-            accuracy = (output_values.argmax(1) == celltype_labels).sum().item()
-            total_error += (1 - accuracy / len(input_gene_ids)) * len(input_gene_ids)
-            total_num += len(input_gene_ids)
+            if len(set(celltype_labels.tolist())) > 1:
+                is_inference_task = False
+                loss = criterion_cls(output_values, celltype_labels)
+                total_loss += loss.item() * len(input_gene_ids)
+                accuracy = (output_values.argmax(1) == celltype_labels).sum().item()
+                total_error += (1 - accuracy / len(input_gene_ids)) * len(input_gene_ids)
+                total_num += len(input_gene_ids)
+
             preds = output_values.argmax(1).cpu().numpy()
             predictions.append(preds)
 
             # probs = F.softmax(output_values, dim=-1).cpu().numpy()
             # probabilities.append(probs)
 
-    wandb.log(
-        {
-            "valid/mse": total_loss / total_num,
-            "valid/err": total_error / total_num,
-            "epoch": epoch,
-        },
-    )
+    if not is_inference_task:
+        wandb.log(
+            {
+                "valid/mse": total_loss / total_num,
+                "valid/err": total_error / total_num,
+                "epoch": epoch,
+            },
+        )
 
     if return_raw:
         return np.concatenate(predictions, axis=0)
