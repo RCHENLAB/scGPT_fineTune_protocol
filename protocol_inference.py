@@ -137,7 +137,7 @@ def main(
         include_zero_gene=include_zero_gene
     )
 
-    test_dataset = SeqDataset(adata)
+    test_dataset = SeqDataset(adata, cell_type_id_col=_cell_type_id)
     test_sampler = (SequentialSampler(test_dataset))
     test_loader = DataLoader(
         test_dataset,

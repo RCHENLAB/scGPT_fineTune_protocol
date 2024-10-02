@@ -201,8 +201,9 @@ class Preprocessor:
 
 #%% Custom class inherit from Dataset for fast access annData
 class SeqDataset(Dataset):
-    def __init__(self, adata: AnnData):
+    def __init__(self, adata: AnnData, cell_type_id_col: str = None):
         self.adata = adata
+        self.cell_type_id_col = cell_type_id_col
 
     def __len__(self):
         return self.adata.shape[0]
@@ -211,7 +212,7 @@ class SeqDataset(Dataset):
         sample = self.adata[idx, :]
         return {
             'data': sample.X.toarray().squeeze() if issparse(sample.X) else sample.X.squeeze(),
-            'cell_type_id': sample.obs['celltype_id'].item()
+            'cell_type_id': -1 if self.cell_type_id_col is None else sample.obs[self.cell_type_id_col].item()
         }
 
 
