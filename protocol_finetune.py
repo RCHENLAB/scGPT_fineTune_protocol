@@ -115,6 +115,8 @@ def main(
     max_seq_len = config.task_configs['max_seq_len']
     n_input_bins = config.task_configs['n_input_bins']
     input_style = config.task_configs['input_style']
+    _cell_type_col = preprocess_config['_FIXED_CELL_TYPE_COL']
+    _cell_type_id = preprocess_config['_FIXED_CELL_TYPE_ID_COL']
 
     ## Task configurations
     CLS = config.task_configs['CLS']
@@ -152,10 +154,6 @@ def main(
 
     # Read input annData
     adata = sc.read_h5ad(config.task_info['input_dataset_directory'], backed='r')
-    if preprocess_config.get('_FIXED_CELL_TYPE_COL', None) is None:
-        logger.warning(f'The input dataset is prepared for the inference task!')
-        logger.warning(f'Safe exiting the finetune profess ...')
-        exit(-1)
     num_types = len(np.unique(adata.obs[preprocess_config['_FIXED_CELL_TYPE_COL']]))
     genes = adata.var[preprocess_config['_FIXED_GENE_COL']].tolist()
 
@@ -176,8 +174,8 @@ def main(
     gene_ids = np.array(vocab(genes), dtype=int)
     indices = list(range(adata.shape[0]))
     train_indices, val_indices = train_test_split(indices, test_size=train_test_split_ratio, random_state=42)
-    train_dataset = Subset(SeqDataset(adata), train_indices)
-    val_dataset = Subset(SeqDataset(adata), val_indices)
+    train_dataset = Subset(SeqDataset(adata, cell_type_id_col=_cell_type_id), train_indices)
+    val_dataset = Subset(SeqDataset(adata, cell_type_id_col=_cell_type_id), val_indices)
 
     # Create data collator and loaders
     data_collator = DataCollator(
