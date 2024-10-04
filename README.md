@@ -1,10 +1,13 @@
 # Fine-tune Protocol for eye-scGPT
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.13863911.svg)](https://doi.org/10.5281/zenodo.13863911)
 
 `Maintainer of the protocol: Shanli Ding`
 
 This is a protocol for doing fine-tuning on any single-cell dataset `(ex: .h5ad, .hd5f, etc.)` with [scGPT](https://www.nature.com/articles/s41592-024-02201-0).
 
 ## Quick How-to-Use Guide
+* **Datasets**
+  1. Select and download train/eval datasets from [HERE](https://zenodo.org/records/13863911)
 * **Fine-tuning Custom scGPT Model**
   1. Prepare the dataset for fine-tuning task. Run `protocol_preprocess.py`
   2. Run `protocol_finetune.py`
@@ -12,6 +15,11 @@ This is a protocol for doing fine-tuning on any single-cell dataset `(ex: .h5ad,
 * **Inference on Trained Model**
   1. Prepare the dataset for inference task. Run `protocol_preprocess.py`
   2. Run `protocol_inference.py`
+ 
+* **Zero-shot Inference on scGPT**
+  1. Download scGPT index file: https://drive.google.com/drive/folders/1q14U50SNg5LMjlZ9KH-n-YsGRi8zkCbe
+  2. Run `protocol_zeroshot_inference.py`
+  3. Or you can use the interactive Jupyter Notebook `./scGPT_fineTune_protcol/notebooks/protocol_notebook.ipynb`
 
 ## Main Scripts
 1. **Pre-process** \
