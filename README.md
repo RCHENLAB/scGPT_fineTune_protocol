@@ -1,5 +1,5 @@
 # Fine-tune Protocol for eye-scGPT
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.13863911.svg)](https://doi.org/10.5281/zenodo.13863911)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.13896150.svg)](https://doi.org/10.5281/zenodo.13896150)
 
 `Maintainer of the protocol: Shanli Ding`
 
@@ -7,7 +7,14 @@ This is a protocol for doing fine-tuning on any single-cell dataset `(ex: .h5ad,
 
 ## Quick How-to-Use Guide
 * **Datasets**
-  1. Select and download train/eval datasets from [HERE](https://zenodo.org/records/13863911)
+  1. Select and download train/eval datasets from [HERE](https://zenodo.org/records/13896150)
+
+* **Fine-tuned eye-scGPT Model**
+  1. You can download the fine-tuned eye-scGPT model [HERE](https://zenodo.org/records/13896150/files/finetuned_AiO.zip?download=1) or you can use `curl` to download through terminal:
+     ```bash
+     curl -L -o finetuned_AiO.zip "https://zenodo.org/api/records/13896150/files/finetuned_AiO.zip"
+     ```
+ 
 * **Fine-tuning Custom scGPT Model**
   1. Prepare the dataset for fine-tuning task. Run `protocol_preprocess.py`
   2. Run `protocol_finetune.py`
