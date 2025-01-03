@@ -84,19 +84,30 @@ This is a protocol for doing fine-tuning on any single-cell dataset `(ex: .h5ad,
    ```
    
 ## Useful Hints
+* How to dynamically test the highest batch size for my environment \
+    You can use the dry-run mode with a initial batch size to find out the largest possible batch size under your computing environment. \
+    Here is how you can use the dry-run mode:
+    > NOTE: the default value for initial batch size is set to 32
+    ```bash
+    python protocol_finetune.py \
+        --dry_run=True \
+        --batch_size=32 \
+        --max_seq_len=5001 \
+        --include_zero_gene=True
+    ```
 * How to use custom config file \
    You can use the custom config file by inserting the path for the variable `--config`. You can see more details in `docs/*-help.txt` \
    Example: 
    ```bash
-     python protocol_preprocess.py \
-        --dataset_directory=../datasets/retina_snRNA.h5ad \
-        --config=save/dev_eyescGPT_May0520/custom_config.yml \   <<<<< Custom Config
-        --cell_type_col=celltype \
-        --batch_id_col=sampleid \
-        --load_model=../scGPT_human \
-         --wandb_sync=True \
-        --wandb_project=finetune_retina_snRNA \
-        --wandb_name=finetune_example1
+    python protocol_preprocess.py \
+      --dataset_directory=../datasets/retina_snRNA.h5ad \
+      --config=save/dev_eyescGPT_May0520/custom_config.yml \   <<<<< Custom Config
+      --cell_type_col=celltype \
+      --batch_id_col=sampleid \
+      --load_model=../scGPT_human \
+      --wandb_sync=True \
+      --wandb_project=finetune_retina_snRNA \
+      --wandb_name=finetune_example1
    ```
   
 * Notebooks \
