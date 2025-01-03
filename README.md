@@ -95,6 +95,37 @@ This is a protocol for doing fine-tuning on any single-cell dataset `(ex: .h5ad,
         --max_seq_len=5001 \
         --include_zero_gene=True
     ```
+* Early-stopping example \
+    This is a good practice to prevent overfitting and un-converging training. The following is an example early stopping class that tracks the minimum validation loss value with a allow chance.
+    ```python
+    # Early-stop class  
+    class Protocol_EarlyStop:
+        def __init__(self, allow_chance=1, min_delta=0):
+            self.allow_chance = allow_chance
+            self.min_delta = min_delta
+            self.counter = 0
+            self.min_validation_loss = float('inf')
+        def early_stop(self, validation_loss):
+            if validation_loss < self.min_validation_loss:
+                self.min_validation_loss = validation_loss
+                self.counter = 0
+            elif validation_loss > (self.min_validation_loss + self.min_delta):
+                self.counter += 1
+                if self.counter >= self.allow_chance:
+                    return True
+            return False
+  
+    ```
+    ```python
+    # Eample usage
+    # **NOTE** This is NOT the functional code
+    early_stopper = Protocol_EarlyStop(allow_chance=3, min_delta=0.1)
+    for epoch in np.arange(n_epochs):
+        train_loss = train(model, train_loader)
+        validation_loss = validate_epoch(model, validation_loader)
+        if early_stopper.early_stop(validation_loss):             
+            break
+    ```
 * How to use custom config file \
    You can use the custom config file by inserting the path for the variable `--config`. You can see more details in `docs/*-help.txt` \
    Example: 
