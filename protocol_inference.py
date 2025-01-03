@@ -290,7 +290,7 @@ def main(
                 adata,
                 color=["celltype", "cleaned_predictions"],
                 palette=palette_,
-                show=False,
+                show=True,
                 legend_fontsize=6,
                 wspace=.6
             )
@@ -340,6 +340,7 @@ def main(
         plt.ylabel('True Label')
         plt.title('Confusion Matrix')
         plt.savefig(save_dir / "confusion_matrix.png", dpi=600)
+        plt.show()
 
         results["test/confusion_matrix"] = wandb.Image(
             str(save_dir / "confusion_matrix.png"),
