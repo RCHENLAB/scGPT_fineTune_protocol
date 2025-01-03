@@ -3,6 +3,7 @@ from utils import *
 
 
 @click.command()
+@click.option('--dry_run', type=bool, default=False, help='Indicate dry-run mode to test if current GPU memory fits the training task.')
 @click.option('--max_seq_len', type=int, required=True, help='Max input sequence length during training. The length should be <= n_hvg+1.')
 @click.option('--config', type=str, default='train', help='Use config file. If using custom config file, input the path to the file directly.  Options=[pp, train, eval, Any<Path>]. Default=train')
 @click.option('--load_model', type=str, default='', help='directory to pretrained/tuned model directory. Default=same model used in preprocess')
@@ -25,6 +26,7 @@ from utils import *
 @click.option('--embsize', type=int, default=512, help='Embedding dimension. Default=512')
 @click.option('--nlayers_cls', type=int, default=3, help='Decoder layers for classifier. Default=3')
 def main(
+    dry_run,
     max_seq_len,
     config,
     load_model,
@@ -303,6 +305,10 @@ def main(
         optimizer, schedule_interval, gamma=config.model_parameters['schedule_ratio']
     )
     scaler = torch.cuda.amp.GradScaler(enabled=config.model_parameters['amp'])
+
+    if dry_run:
+        logger.info('Entering dry-run mode ...')
+        dry_run_train(model, logger, vocab[pad_token], criterion_cls, config, scaler, logger, device, initial_batch_size=batch_size)
 
     # Start fine-tuning
     logger.info(f'Start training ...')

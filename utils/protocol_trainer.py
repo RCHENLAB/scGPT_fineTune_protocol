@@ -112,6 +112,70 @@ def train(
             start_time = time.time()
 
 
+#%% Dry-run
+def dry_run_train(
+        model: nn.Module,
+        loader: DataLoader,
+        pad_vocab: int,
+        criterion_cls,
+        config,
+        scaler,
+        logger,
+        device,
+        initial_batch_size=64,
+        batch_labels=None,
+) -> int:
+    """
+    Dry-run to determine the largest feasible batch size for training.
+    """
+    batch_size = initial_batch_size
+    while batch_size > 16:
+        try:
+            # Update loader with the current batch size
+            loader.batch_size = batch_size
+
+            logger.info(f"Current batch size: {batch_size}")
+
+            # Perform a dry-run using the first batch
+            model.train()
+            batch_data = next(iter(loader))  # Get the first batch
+            batch_data = {k: v.to(device) for k, v in batch_data.items()}
+            input_gene_ids = batch_data["input_gene_ids"].to(device)
+            input_values = batch_data["input_expr"].to(device)
+            celltype_labels = batch_data["cell_types"].to(device)
+            src_key_padding_mask = input_gene_ids.eq(pad_vocab)
+
+            with torch.cuda.amp.autocast(config.model_parameters['amp']):
+                output_dict = model(
+                    input_gene_ids,
+                    input_values,
+                    src_key_padding_mask=src_key_padding_mask,
+                    batch_labels=batch_labels,
+                    CLS=config.task_configs['CLS'],
+                    CCE=config.task_configs['CCE'],
+                    MVC=config.task_configs['MVC'],
+                    ECS=config.task_configs['ECS'],
+                    do_sample=config.task_configs['do_sample_in_train']
+                )
+                loss = criterion_cls(output_dict["cls_output"], celltype_labels)
+
+            # Backward pass to test memory consumption
+            scaler.scale(loss).backward()
+            logger.info(f"Batch size {batch_size} is feasible.")
+            return batch_size  # Exit if successful
+
+        except RuntimeError as e:
+            if "CUDA out of memory" in str(e):
+                logger.warning(f"Batch size {batch_size} failed due to memory error.")
+                batch_size -= 1  # Decrease batch size and retry
+                torch.cuda.empty_cache()  # Clear memory
+            else:
+                raise e  # Re-raise other exceptions
+
+    logger.error("No feasible batch size found. Please reduce model size or adjust resources.")
+    return 0  # Return 0 if no feasible batch size is found
+
+
 #%% Eval func
 def evaluate(
     model: nn.Module,
