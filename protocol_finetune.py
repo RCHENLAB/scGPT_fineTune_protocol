@@ -102,6 +102,7 @@ def main(
     logger = scg.logger
     scg.utils.add_file_handler(logger, save_dir / "run.log")
     os.system(f"cp {__file__} {save_dir}")
+    os.system(f"cp {task_info['id2type_json']} {save_dir}")
     with open(save_dir / 'dev_train_args.yml', 'w') as out_configs:
         yaml.dump(hyperparameter_defaults, out_configs, sort_keys=False)
     logger.info(f"Current training script and config file is saved to -> {save_dir}")
