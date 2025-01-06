@@ -116,7 +116,8 @@ def main(
         # if id2type is offered then we map the cell type to the reference dataset ID
         # otherwise, use the sequential numbers to create a new id2type mapping
         if len(task_info['id2type_json']) > 0:
-            with open(task_info['id2type_json'], 'r') as f:
+            id2type_json_path = Path(load_model, task_info['id2type_json'].split('/')[-1]) if load_model else task_info['id2type_json']
+            with open(id2type_json_path, 'r') as f:
                 id2type = json.load(f)
             type2id = {cell_type_name: int(cell_type_id) for cell_type_id, cell_type_name in id2type.items()}
             adata.obs[_cell_type_id] = adata.obs[_cell_type_col].map(type2id)
@@ -137,7 +138,8 @@ def main(
         # if id2type is offered then we map the cell type to the reference dataset ID
         # otherwise, use the sequential numbers to create a new id2type mapping
         if len(task_info['id2type_json']) > 0:
-            with open(task_info['id2type_json'], 'r') as f:
+            id2type_json_path = Path(load_model, task_info['id2type_json'].split('/')[-1]) if load_model else task_info['id2type_json']
+            with open(id2type_json_path, 'r') as f:
                 id2type = json.load(f)
             type2id = {cell_type_name: int(cell_type_id) for cell_type_id, cell_type_name in id2type.items()}
             adata.obs[_cell_type_id] = adata.obs[_cell_type_col].map(type2id)

@@ -2,28 +2,17 @@
 from utils import *
 
 
-@click.command()
-@click.option('--load_model', type=str, required=True, help='directory to pretrained/tuned model directory.')
-@click.option('--max_seq_len', type=int, default=-1,
-              help='Max input sequence length during training. The length should be <= n_hvg+1. Default=same length as loaded model definition')
-@click.option('--config', type=str, default='eval',
-              help='Use config file. If using custom config file, input the path to the file directly.  Options=[pp, train, eval, Any<Path>]')
-@click.option('--freeze_predecoder', type=bool, default=False, help='Freeze pre-decoder. Default=False')
-@click.option('--batch_size', type=int, default=32, help='Batch size during evaluation. Default=32')
-@click.option('--wandb_sync', type=bool, default=False, help='Enable WandB cloud syncing. Default=False')
-@click.option('--wandb_project', type=str, required=True,
-              help='Project name in WandB. Recommend to use different project name other than training project.')
-@click.option('--wandb_name', type=str, default='', help='Run name in WandB. Default=EMPTY.')
-def main(
-        load_model,
-        max_seq_len,
-        config,
-        freeze_predecoder,
-        batch_size,
-        wandb_sync,
-        wandb_project,
-        wandb_name,
-        epochs=1
+#%% Function call
+def run_inference(
+    load_model,
+    max_seq_len,
+    config,
+    freeze_predecoder,
+    batch_size,
+    wandb_sync,
+    wandb_project,
+    wandb_name,
+    epochs=1
 ):
     # get loaded model configs
     if config == 'pp':
@@ -153,7 +142,9 @@ def main(
     logger.info(f'Create new model instance ...')
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     ntokens = len(vocab)
-    with open(config.task_info['id2type_json'], 'r') as f:
+    id2type_json_path = Path(load_model, config.task_info['id2type_json'].split('/')[-1]) if load_model else \
+    config.task_info['id2type_json']
+    with open(id2type_json_path, 'r') as f:
         ref_id2type = json.load(f)
     unique_ref_cell_types = list(ref_id2type.values())
     ref_total_types = len(unique_ref_cell_types)
@@ -290,7 +281,7 @@ def main(
                 adata,
                 color=["celltype", "cleaned_predictions"],
                 palette=palette_,
-                show=True,
+                show=False,
                 legend_fontsize=6,
                 wspace=.6
             )
@@ -300,6 +291,9 @@ def main(
                 axes[0].set_title("Cell Type")
                 axes[1].set_title("Predictions")
             plt.savefig(save_dir / "evaluation_umap.png", dpi=500, bbox_inches="tight")
+            if is_notebook():
+                display(fig)
+            plt.close(fig)
 
         save_dict = {
             "predictions": predictions,
@@ -320,7 +314,8 @@ def main(
         # generate confusion matrix
         logger.info(f'Generating confusion matrix ... ')
 
-        cm = confusion_matrix(adata.obs[_cell_type_col], [ref_id2type[str(p)] for p in predictions], labels=unique_true_cell_types)
+        cm = confusion_matrix(adata.obs[_cell_type_col], [ref_id2type[str(p)] for p in predictions],
+                              labels=unique_true_cell_types)
         cm_normalized = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
 
         prediction_result_dict = {
@@ -335,12 +330,15 @@ def main(
         print("Evaluation results saved to 'evaluation_results.json'")
 
         plt.figure(figsize=(20, 20))
-        sns.heatmap(cm_normalized, annot=True, cmap='plasma', xticklabels=unique_true_cell_types, yticklabels=unique_true_cell_types)
+        sns.heatmap(cm_normalized, annot=True, cmap='plasma', xticklabels=unique_true_cell_types,
+                    yticklabels=unique_true_cell_types)
         plt.xlabel('Predicted Label')
         plt.ylabel('True Label')
         plt.title('Confusion Matrix')
         plt.savefig(save_dir / "confusion_matrix.png", dpi=600)
-        plt.show()
+        if is_notebook():
+            display(plt.gcf())
+        plt.close()
 
         results["test/confusion_matrix"] = wandb.Image(
             str(save_dir / "confusion_matrix.png"),
@@ -360,6 +358,43 @@ def main(
     run.finish()
     wandb.finish()
     gc.collect()
+
+
+#%% CMD call
+@click.command()
+@click.option('--load_model', type=str, required=True, help='directory to pretrained/tuned model directory.')
+@click.option('--max_seq_len', type=int, default=-1,
+              help='Max input sequence length during training. The length should be <= n_hvg+1. Default=same length as loaded model definition')
+@click.option('--config', type=str, default='eval',
+              help='Use config file. If using custom config file, input the path to the file directly.  Options=[pp, train, eval, Any<Path>]')
+@click.option('--freeze_predecoder', type=bool, default=False, help='Freeze pre-decoder. Default=False')
+@click.option('--batch_size', type=int, default=32, help='Batch size during evaluation. Default=32')
+@click.option('--wandb_sync', type=bool, default=False, help='Enable WandB cloud syncing. Default=False')
+@click.option('--wandb_project', type=str, required=True,
+              help='Project name in WandB. Recommend to use different project name other than training project.')
+@click.option('--wandb_name', type=str, default='', help='Run name in WandB. Default=EMPTY.')
+def main(
+    load_model,
+    max_seq_len,
+    config,
+    freeze_predecoder,
+    batch_size,
+    wandb_sync,
+    wandb_project,
+    wandb_name,
+    epochs=1
+):
+    run_inference(
+        load_model,
+        max_seq_len,
+        config,
+        freeze_predecoder,
+        batch_size,
+        wandb_sync,
+        wandb_project,
+        wandb_name,
+        epochs=epochs
+    )
 
 
 # %% Run

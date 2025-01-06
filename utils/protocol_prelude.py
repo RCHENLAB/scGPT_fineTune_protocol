@@ -16,6 +16,7 @@ import seaborn as sns
 import wandb
 import yaml
 import click
+from IPython.display import display
 from anndata import AnnData
 from numpy import ndarray, dtype
 from pathlib import Path

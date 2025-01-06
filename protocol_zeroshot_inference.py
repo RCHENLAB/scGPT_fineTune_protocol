@@ -34,7 +34,10 @@ def main(
     print(f"Loaded index with {index.ntotal} cells")
 
     eval_adata = sc.read_h5ad(eval_data_path)
-    eval_adata.var = eval_adata.var.set_index("gene_symbols")
+    ###
+    # TODO: set the index column for gene name/symbol, otherwise no action is needed
+    # eval_adata.var = eval_adata.var.set_index("gene_symbols")
+    ###
     model_dir = Path(model_path)
     gene_col = "index"
 
@@ -64,6 +67,7 @@ def main(
     })
 
     save_dir = Path(f"./save/zs_{job_name}-{time.strftime('%b%d-%H-%M-%S')}/")
+    save_dir.mkdir(parents=True, exist_ok=True)
     df.to_csv(save_dir / 'ground_truth_and_predictions.csv', index=False)
     print('=' * 30)
     print(f'Zero-shot prediction is saved to -> {save_dir}')
