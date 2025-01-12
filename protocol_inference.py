@@ -251,7 +251,7 @@ def run_inference(
     logger.info(f'*** Inference was finished in: {inference_time} seconds ***')
     adata.obs['predictions'] = [ref_id2type[str(pred)] for pred in predictions]
     subset_obs = adata.obs[['predictions']].copy()
-    subset_obs['confidence'] = confidences
+    subset_obs['confidence'] = confidences.max(axis=1)
 
     if labels is not None:
         logger.info(f'Start evaluation process ...')
