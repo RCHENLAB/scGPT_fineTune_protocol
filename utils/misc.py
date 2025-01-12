@@ -180,16 +180,20 @@ class Preprocessor:
                 self.logger.warning(
                     "No batch_key is provided, will use all cells for HVG selection."
                 )
-            sc.pp.highly_variable_genes(
-                adata,
-                layer=self.hvg_use_key,
-                n_top_genes=self.subset_hvg
-                if isinstance(self.subset_hvg, int)
-                else None,
-                batch_key=batch_key,
-                flavor=self.hvg_flavor,
-                subset=True
-            )
+            try:
+                sc.pp.highly_variable_genes(
+                    adata,
+                    layer=self.hvg_use_key,
+                    n_top_genes=self.subset_hvg
+                    if isinstance(self.subset_hvg, int)
+                    else None,
+                    batch_key=batch_key,
+                    flavor=self.hvg_flavor,
+                    subset=True
+                )
+            except Exception as e:
+                print(f'Error encountered, skipping subsetting HVG: {e}')
+                pass
 
     def check_logged(self, adata, obs_key: Optional[str] = None) -> bool:
         """

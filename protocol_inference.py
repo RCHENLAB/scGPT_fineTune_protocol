@@ -223,7 +223,8 @@ def run_inference(
         predictions,
         results,
         precision_dict,
-        wrong_predictions
+        wrong_predictions,
+        confidences
     ) = test(
         model,
         loader=test_loader,
@@ -250,6 +251,7 @@ def run_inference(
     logger.info(f'*** Inference was finished in: {inference_time} seconds ***')
     adata.obs['predictions'] = [ref_id2type[str(pred)] for pred in predictions]
     subset_obs = adata.obs[['predictions']].copy()
+    subset_obs['confidence'] = confidences
 
     if labels is not None:
         logger.info(f'Start evaluation process ...')
@@ -297,6 +299,7 @@ def run_inference(
 
         save_dict = {
             "predictions": predictions,
+            "confidences": confidences,
             "labels": labels,
             "results": results,
             "id_maps": ref_id2type

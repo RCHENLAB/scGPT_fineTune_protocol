@@ -196,6 +196,7 @@ def evaluate(
     total_error = 0.0
     total_num = 0
     predictions = []
+    confidences = []
     is_inference_task = True
     with torch.no_grad():
         for batch_data in loader:
@@ -228,9 +229,8 @@ def evaluate(
 
             preds = output_values.argmax(1).cpu().numpy()
             predictions.append(preds)
-
-            # probs = F.softmax(output_values, dim=-1).cpu().numpy()
-            # probabilities.append(probs)
+            probs = F.softmax(output_values, dim=-1).cpu().numpy()
+            confidences.append(probs)
 
     if not is_inference_task:
         wandb.log(
@@ -242,7 +242,7 @@ def evaluate(
         )
 
     if return_raw:
-        return np.concatenate(predictions, axis=0)
+        return np.concatenate(predictions, axis=0), np.concatenate(confidences, axis=0)
 
     return total_loss / total_num, total_error / total_num
 
@@ -261,7 +261,7 @@ def test(
     device
 ):
     model.eval()
-    predictions = evaluate(
+    predictions, confidences = evaluate(
         model,
         loader=loader,
         pad_vocab=pad_vocab,
@@ -284,7 +284,7 @@ def test(
         weighted_precision = np.sum(precision_per_class * support_per_class) / total_support
         weighted_recall = np.sum(recall_per_class * support_per_class) / total_support
         weighted_f1 = np.sum(f1_per_class * support_per_class) / total_support
-        kappa_coefficient = cohen_kappa_score(true_cell_type_ids, predictions)
+        kappa_coefficient = cohen_kappa_score(true_cell_type_ids, predictions, weights='quadratic')
 
         precision_dict = {}
         for label, precision in zip(unique_true_cell_type_ids, precision_per_class):
@@ -314,7 +314,7 @@ def test(
             "test/kappa_coefficient": kappa_coefficient
         }
 
-    return predictions, results, precision_dict, wrong_predictions
+    return predictions, results, precision_dict, wrong_predictions, confidences
 
 
 #%% END
