@@ -177,7 +177,7 @@ def main(
     # Create train and validation datasets
     gene_ids = np.array(vocab(genes), dtype=int)
     indices = list(range(adata.shape[0]))
-    train_indices, val_indices = train_test_split(indices, test_size=train_test_split_ratio, random_state=42)
+    train_indices, val_indices = train_test_split(indices, test_size=train_test_split_ratio, stratify=adata.obs[preprocess_config['_FIXED_CELL_TYPE_COL']], random_state=42)
     train_dataset = Subset(SeqDataset(adata, cell_type_id_col=_cell_type_id), train_indices)
     val_dataset = Subset(SeqDataset(adata, cell_type_id_col=_cell_type_id), val_indices)
 

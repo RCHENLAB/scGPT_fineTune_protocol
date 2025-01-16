@@ -272,11 +272,21 @@ def test(
         return_raw=True
     )
     results = None
-    precision_dict = None
+    accuracy_by_cell_type = None
     wrong_predictions = None
     if true_cell_type_ids is not None:
         unique_true_cell_type_ids = [str(i) for i in set(true_cell_type_ids)]
         accuracy = accuracy_score(true_cell_type_ids, predictions)
+        unique_true_cell_type_ids = list(map(int, unique_true_cell_type_ids))
+        accuracy_by_cell_type = {}
+        for cell_type in unique_true_cell_type_ids:
+            indices_of_cell_type = [i for i, label in enumerate(true_cell_type_ids) if label == cell_type]
+            if indices_of_cell_type:
+                true_labels_for_cell_type = [true_cell_type_ids[i] for i in indices_of_cell_type]
+                predictions_for_cell_type = [predictions[i] for i in indices_of_cell_type]
+                accuracy_for_cell_type = accuracy_score(true_labels_for_cell_type, predictions_for_cell_type)
+                accuracy_by_cell_type[ref_id2type[str(cell_type)]] = accuracy_for_cell_type
+
         precision_per_class, recall_per_class, f1_per_class, support_per_class = precision_recall_fscore_support(
             true_cell_type_ids, predictions, zero_division=0
         )
@@ -285,10 +295,6 @@ def test(
         weighted_recall = np.sum(recall_per_class * support_per_class) / total_support
         weighted_f1 = np.sum(f1_per_class * support_per_class) / total_support
         kappa_coefficient = cohen_kappa_score(true_cell_type_ids, predictions, weights='quadratic')
-
-        precision_dict = {}
-        for label, precision in zip(unique_true_cell_type_ids, precision_per_class):
-            precision_dict[ref_id2type[label]] = precision
 
         wrong_predictions = {}
         for gt, pred, idx in zip(true_cell_type_ids, predictions, range(len(predictions))):
@@ -314,7 +320,7 @@ def test(
             "test/kappa_coefficient": kappa_coefficient
         }
 
-    return predictions, results, precision_dict, wrong_predictions, confidences
+    return predictions, results, accuracy_by_cell_type, wrong_predictions, confidences
 
 
 #%% END

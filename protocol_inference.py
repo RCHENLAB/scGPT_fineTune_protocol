@@ -281,21 +281,28 @@ def run_inference(
         with plt.rc_context({"figure.dpi": 500}):
             sc.pl.umap(
                 adata,
-                color=["celltype", "cleaned_predictions"],
+                color="celltype",
                 palette=palette_,
-                show=False,
-                legend_fontsize=6,
-                wspace=.6
+                show=False
             )
-            fig = plt.gcf()
-            axes = fig.get_axes()
-            if len(axes) == 2:
-                axes[0].set_title("Cell Type")
-                axes[1].set_title("Predictions")
-            plt.savefig(save_dir / "evaluation_umap.png", dpi=500, bbox_inches="tight")
+            plt.title("Cell Type")
+            plt.savefig(save_dir / "umap_groundTruth.png", dpi=500, bbox_inches="tight")
             if is_notebook():
-                display(fig)
-            plt.close(fig)
+                display(plt.gcf())
+            plt.close()
+
+        with plt.rc_context({"figure.dpi": 500}):
+            sc.pl.umap(
+                adata,
+                color="cleaned_predictions",
+                palette=palette_,
+                show=False
+            )
+            plt.title("Predictions")
+            plt.savefig(save_dir / "umap_predictions.png", dpi=500, bbox_inches="tight")
+            if is_notebook():
+                display(plt.gcf())
+            plt.close()
 
         save_dict = {
             "predictions": predictions,
@@ -308,10 +315,16 @@ def run_inference(
         with open(save_dir / "results.pkl", "wb") as f:
             pickle.dump(save_dict, f)
 
-        results["test/cell_umap"] = wandb.Image(
-            str(save_dir / "evaluation_umap.png"),
-            caption=f"predictions macro f1 {results['test/macro_f1']:.3f}",
+        results["test/cell_umap_groundTruth"] = wandb.Image(
+            str(save_dir / "umap_groundTruth.png"),
+            caption=f"Ground Truth - Macro F1: {results['test/macro_f1']:.3f}"
         )
+
+        results["test/cell_umap_predictions"] = wandb.Image(
+            str(save_dir / "umap_predictions.png"),
+            caption=f"Predictions - Macro F1: {results['test/macro_f1']:.3f}"
+        )
+
         wandb.log(results)
 
         # generate confusion matrix

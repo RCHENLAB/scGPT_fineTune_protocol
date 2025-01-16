@@ -1,10 +1,7 @@
 # Fine-tune Protocol for eye-scGPT
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.13896150.svg)](https://doi.org/10.5281/zenodo.13896150)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.14648190.svg)](https://doi.org/10.5281/zenodo.14648190)
 
-`Maintainer of the protocol: Shanli Ding`
-
-This is a protocol for doing fine-tuning on any single-cell dataset `(ex: .h5ad, .hd5f, etc.)` with [scGPT](https://www.nature.com/articles/s41592-024-02201-0).
-
+This is a protocol for doing fine-tuning on any single-cell annotations `(ex: .h5ad, .hd5f, etc.)` with [scGPT](https://www.nature.com/articles/s41592-024-02201-0).
 ## Quick How-to-Use Guide
 * **Datasets**
   1. Select and download train/eval datasets from [HERE](https://zenodo.org/records/13896150)
@@ -12,7 +9,7 @@ This is a protocol for doing fine-tuning on any single-cell dataset `(ex: .h5ad,
 * **Fine-tuned eye-scGPT Model**
   1. You can download the fine-tuned eye-scGPT model [HERE](https://zenodo.org/records/13896150/files/finetuned_AiO.zip?download=1) or you can use `curl` to download through terminal:
      ```bash
-     curl -L -o finetuned_AiO.zip "https://zenodo.org/api/records/13896150/files/finetuned_AiO.zip"
+     curl -L -o finetuned_AiO.zip "https://zenodo.org/api/records/14648190/files/finetuned_AiO.zip"
      ```
  
 * **Fine-tuning Custom scGPT Model**
