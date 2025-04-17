@@ -208,7 +208,7 @@ def evaluate(
             with torch.cuda.amp.autocast(enabled=config.model_parameters['amp']):
                 output_dict = model(
                     input_gene_ids,
-                    input_values,
+                    input_values.to(torch.float32),
                     src_key_padding_mask=src_key_padding_mask,
                     batch_labels=batch_labels,
                     CLS=config.task_configs['CLS'],
