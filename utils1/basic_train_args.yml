@@ -1,0 +1,83 @@
+# Fine-tuning Parameters Configuration
+task_info:
+  raw_dataset_directory: ""
+  raw_dataset_name: "eyeGPT"  # dataset name in fine-tuning
+  save_dir: ""  # Current task working directory. It's created in pre-process and use in fine-tune
+  input_dataset_directory: ""  # pre-processed dataset for fine-tune input
+  id2type_json: ""  # training data ID-to-cellType mapping json path
+
+preprocess:
+  do_norm: True  # BOOL, run normalization and log1p, default=True
+  filter_gene_by_counts: 0  # INT, num for gene counts filtering, default=0
+  filter_cell_by_counts: 0  # INT, num for cell counts filtering, default=0
+  normalize_total: 10000  # INT, default=1e4
+  n_hvg: 5000  # number for hvg extraction, default=5000
+  hvg_flavor: "seurat_v3"  # String, options in ['seurat_v3', 'cell_ranger'], default='seurat_v3'
+  dataset_cell_type_col: 'celltype'  # String, the cell type column name in fine-tuning dataset
+  dataset_batch_id_col: 'sampleid'  # String, the batch ID column name in fine-tuning dataset
+  _FIXED_BATCH_ID_COL: 'batch_id'
+  _FIXED_CELL_TYPE_COL: 'celltype'
+  _FIXED_CELL_TYPE_ID_COL: 'celltype_id'
+  _FIXED_GENE_COL: 'gene_name'
+
+model_parameters:
+  seed: 0
+  load_model: "pretrained_models/scGPT_human"  # load trained model folder (*.pt)
+  do_train: true  # defines train / eval task
+  epochs: 1
+  use_flash_attn: false  # recommended if flash-attn is installed
+  fast_transformer_backend: "flash"  # flash-attn backend, ["flash", "linear"]
+  use_batch_labels: false  # use batch labels from annotated data
+  pre_norm: false  # pre-normalization
+  DSBN: false  # domain-specific batch normalization
+  amp: true  # automatic mixed precision
+  freeze_predecoder: false  # freeze pre-decoder in transformer model
+  train_test_split_ratio: 0.1  # 10% data as test data
+  batch_size: 64
+  lr: 0.0001  # learning rate
+  dropout: 0.2
+  schedule_ratio: 0.9  # learning rate linear decay ratio
+  schedule_interval: 1  # scheduler updates every N epoch
+  log_interval: 100  # logging every 100 batches
+  save_eval_interval: 1  # epoch to save the best model
+  nlayers: 12  # nn.TransformerEncoderLayer, overwrite if <fine-tune>
+  nheads: 8  # heads in nn.MultiheadAttention, overwrite if <fine-tune>
+  embsize: 512  # embedding dimension, overwrite if <fine-tune>
+  d_hid: 512  # dimension of the feedforward network in TransformerEncoder, overwrite if <fine-tune>
+  nlayers_cls: 3  # number of dense layers before the last softmax layer, default=3
+  use_weighted_loss: false  # BOOL, enable weighted cross-entropy
+
+wandb_configs:
+  mode: "offline"  # wandb mode for cloud syncing, ["online", "offline"]
+  project: "scgpt_cellType"  # project name
+  reinit: true
+  name: 'cell_type_111'  # task name, [Any String | Empty]
+
+task_configs:
+  pad_token: "<pad>"
+  cls_token: "<cls>"
+  eoc_token: "<eoc>"
+  mask_value: -1
+  pad_value: -2
+
+  CLS: true  # cell annotation classifier
+  MVC: false  # masked value prediction
+  mask_ratio: 0  # no masking
+  MLM: false  # masked language modeling
+  ADV: false  # adversarial training for batch correction
+  CCE: false  # contrastive cell embedding objective
+  ECS: false  # elastic cell similarity objective
+  ecs_threshold: 0.0  # # Elastic cell similarity objective, 0.0 to 1.0, 0.0 to disable
+  DAB: false  # domain adaptation by reverse backpropagation, set to 2 for separate optimizer
+  dab_weight: 0.0
+
+  max_seq_len: 5001  # max input sequence (gene expr) length into model. 1-indexed.
+  n_input_bins: 51  # number of bins in dataset
+  input_style: "binned"  # options: # "normed_raw" / "log1p" / "binned"
+  input_emb_style: "continuous"  # options: "category" / "continuous" / "scaling"
+  cell_emb_style: "cls"  # options: "avg-pool" / "w-pool" / "cls"
+  append_cls: true
+  include_zero_gene: false
+  sort_per_seq_batch: false
+  explicit_zero_prob: false
+  do_sample_in_train: false
