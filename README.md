@@ -140,3 +140,6 @@ This is a protocol for doing fine-tuning on any single-cell annotations `(ex: .h
   
 * Notebooks \
    Notebooks in `/notebooks`
+
+## Citation
+Ding, S., Li, J., Luo, R. et al. scGPT: end-to-end protocol for fine-tuned retinal cell type annotation. Nat Protoc (2025). https://doi.org/10.1038/s41596-025-01220-1
